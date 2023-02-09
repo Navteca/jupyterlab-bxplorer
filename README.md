@@ -1,10 +1,10 @@
 # jupyterlab_bxplorer
 
-[![Github Actions Status](git@github.com:Navteca/jupyterlab-bxplorer.git/workflows/Build/badge.svg)](git@github.com:Navteca/jupyterlab-bxplorer.git/actions/workflows/build.yml)
-This is a JupyterLab extension that allows users to explore and interact with cloud storage services.
+[![Github Actions Status](git@github.com:Navteca/jupyterlab_bxeplorer.git/workflows/Build/badge.svg)](git@github.com:Navteca/jupyterlab_bxeplorer.git/actions/workflows/build.yml)
+A JupyterLab extension to explore buckets and blobs.
 
 This extension is composed of a Python package named `jupyterlab_bxplorer`
-for the server extension and a NPM package named `jupyterlab-bxplorer`
+for the server extension and a NPM package named `jupyterlab_bxplorer`
 for the frontend extension.
 
 ## Requirements
@@ -57,7 +57,7 @@ The `jlpm` command is JupyterLab's pinned version of
 # Clone the repo to your local environment
 # Change directory to the jupyterlab_bxplorer directory
 # Install package in development mode
-pip install -e "."
+pip install -e .
 # Link your development version of the extension with JupyterLab
 jupyter labextension develop . --overwrite
 # Server extension must be manually installed in develop mode
@@ -93,7 +93,7 @@ pip uninstall jupyterlab_bxplorer
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlink named `jupyterlab-bxplorer` within that folder.
+folder is located. Then you can remove the symlink named `jupyterlab_bxplorer` within that folder.
 
 ### Packaging the extension
 
