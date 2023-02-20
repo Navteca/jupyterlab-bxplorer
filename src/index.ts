@@ -27,6 +27,12 @@ async function activate(app: JupyterFrontEnd, restorer: ILayoutRestorer): Promis
     widget.title.caption = 'BXplorer';
     app.shell.add(widget, 'left', { rank: 501 });
 
+    setTimeout(() => {
+        console.log('Updating widget...')
+        widget.update()
+        widget.content.update()
+    }, 15000);
+
     const downloadsContent = new DownloadsPanelWidget()
     downloadsContent.addClass('jp-PropertyInspector-placeholderContent');
     const downloadsWidget = new MainAreaWidget<DownloadsPanelWidget>({ content: downloadsContent })

@@ -16,7 +16,7 @@ export const DownloadPathSetterComponent: React.FC<IModalHandlerProps> = ({ show
         downloadPath: Yup.string()
             .trim()
             .required('A path must be provided')
-            .matches(/^[a-zA-Z0-9.\-\_]+$/, "Only local paths and not special characters are allowed.")
+            .matches(/^(?![\/])[a-zA-Z0-9.\-\_\/]+$/, "Only local paths in the current directory without special characters are allowed.")
     })
 
     const onSubmit = (values: IValues) => {

@@ -1,0 +1,8 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "jupyterlab_bxplorer",
+  "description": "jupyterlab_bxplorer settings.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

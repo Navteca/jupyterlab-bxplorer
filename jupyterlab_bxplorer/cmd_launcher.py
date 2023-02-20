@@ -44,6 +44,14 @@ class NotEnoughSpaceOnDevice(Error):
         return f"There is not enough space left on the device."
 
     
+class LargeFileWarning(Error):
+    def __init__(self):
+        super().__init__()
+
+    def __str__(self):
+        return f"The file you are trying to download is large and this might affect JupyterLab functioning."
+
+    
 class ApplicationNotFound(Error):
     def __init__(self):
         super().__init__()
@@ -96,7 +104,13 @@ if __name__ == '__main__':
         key = args.s3_uri.replace(bucket+'/', '')
         filename = os.path.basename(args.s3_uri)
         disk_space_left = psutil.disk_usage(str(Path(args.path).parent))[2]
-        total_object_size = round(get_size(bucket, key, s3_client) * 1.10)
+        object_size = get_size(bucket, key, s3_client)
+        total_object_size = round(object_size * 1.10)
+
+        logger.info(f"=====> File Size => {object_size}")
+
+        if object_size > 1000000000:
+            raise LargeFileWarning()
 
         if disk_space_left - total_object_size >= 0:
             if filename == '':

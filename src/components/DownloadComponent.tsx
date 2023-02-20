@@ -2,6 +2,8 @@ import React, { useContext } from 'react';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Stack from 'react-bootstrap/Stack';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
 import { DownloadContext } from './DownloadsContext';
 import { DownloadContextType } from './downloads';
 import { IDownloads } from './CustomProps';
@@ -19,6 +21,8 @@ export const DownloadComponent: React.FC<Props> = ({ download }): JSX.Element =>
         getDownloadsList()
     }
 
+    const removeFromListTooltip = (<Tooltip id="remove-from-list">Remove from list</Tooltip>);
+
     return (
         <div>
             <Card className='m-2'>
@@ -28,9 +32,11 @@ export const DownloadComponent: React.FC<Props> = ({ download }): JSX.Element =>
                             <span>{download.name}</span>
                             <span>{download.status}</span>
                         </Stack>
-                        <Button className="ms-auto" variant="link" size='sm' onClick={(e) => handleDeleteClick(e, download.id, download.pid)} disabled={!!(download.status === 'Downloading')}>
-                            <span className="fa fa-solid fa-trash m-2" aria-hidden="true"></span>
-                        </Button>
+                        <OverlayTrigger placement="bottom" overlay={removeFromListTooltip}>
+                            <Button className="ms-auto" variant="link" size='sm' onClick={(e) => handleDeleteClick(e, download.id, download.pid)} disabled={!!(download.status === 'Downloading')} >
+                                <span className="fa fa-solid fa-xmark m-2" aria-hidden="true"></span>
+                            </Button>
+                        </OverlayTrigger>
                     </Stack>
                 </Card.Body>
             </Card>

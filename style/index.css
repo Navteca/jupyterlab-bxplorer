@@ -1,6 +1,6 @@
-@import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
 @import './fontawesome/css/fontawesome.css';
 @import './fontawesome/css/solid.css';
+@import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
 
 .containerFM {
   position: absolute;
@@ -25,7 +25,7 @@
 }
 
 .downloads-container {
-  display: flex;
+  display: flex-root;
   flex-direction: column;
   flex-wrap: wrap;
   height: auto;
