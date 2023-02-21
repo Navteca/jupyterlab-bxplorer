@@ -1,15 +1,15 @@
 {
-  "name": "jupyterlab_bxplorer",
+  "name": "jupyterlab-bxplorer",
   "version": "0.1.11",
-  "description": "A JupyterLab extension to explore buckets and blobs.",
+  "description": "This is a JupyterLab extension that allows users to explore and interact with cloud storage services.",
   "keywords": [
     "jupyter",
     "jupyterlab",
     "jupyterlab-extension"
   ],
-  "homepage": "git@github.com:Navteca/jupyterlab_bxeplorer.git",
+  "homepage": "git@github.com:Navteca/jupyterlab-bxeplorer.git",
   "bugs": {
-    "url": "git@github.com:Navteca/jupyterlab_bxeplorer.git/issues"
+    "url": "git@github.com:Navteca/jupyterlab-bxeplorer.git/issues"
   },
   "license": "BSD-3-Clause",
   "author": {
@@ -26,7 +26,7 @@
   "style": "style/index.css",
   "repository": {
     "type": "git",
-    "url": "git@github.com:Navteca/jupyterlab_bxeplorer.git"
+    "url": "git@github.com:Navteca/jupyterlab-bxeplorer.git"
   },
   "scripts": {
     "build": "jlpm build:lib && jlpm build:labextension:dev",

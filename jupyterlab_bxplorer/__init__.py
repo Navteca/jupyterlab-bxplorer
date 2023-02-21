@@ -6,14 +6,14 @@ from .handlers import setup_handlers
 def _jupyter_labextension_paths():
     return [{
         "src": "labextension",
-        "dest": "jupyterlab_bxplorer"
+        "dest": "jupyterlab-bxplorer"
     }]
 
 
 
 def _jupyter_server_extension_points():
     return [{
-        "module": "jupyterlab_bxplorer"
+        "module": "jupyterlab-bxplorer"
     }]
 
 
@@ -26,7 +26,7 @@ def _load_jupyter_server_extension(server_app):
         JupyterLab application instance
     """
     setup_handlers(server_app.web_app)
-    name = "jupyterlab_bxplorer"
+    name = "jupyterlab-bxplorer"
     server_app.log.info(f"Registered {name} server extension")
 
 

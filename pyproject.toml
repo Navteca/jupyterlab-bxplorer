@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling>=1.3.1", "jupyterlab>=3.4.7,<4.0.0", "hatch-nodejs-version", "boto3-stubs<=1.26.0", "tzlocal<=4.2", "PyYAML<=6.0", "sqlalchemy<=1.4.44", "mypy-boto3-s3<=1.26.0.post1", "Werkzeug>=2.0.1"]
+requires = ["hatchling>=1.4.0", "jupyterlab>=3.4.7,<4.0.0", "hatch-nodejs-version", "boto3-stubs<=1.26.0", "tzlocal<=4.2", "PyYAML<=6.0", "sqlalchemy<=1.4.44", "mypy-boto3-s3<=1.26.0.post1", "Werkzeug>=2.0.1"]
 build-backend = "hatchling.build"
 
 [project]
-name = "jupyterlab_bxplorer"
-description = "A JupyterLab extension to explore datasets."
+name = "jupyterlab-bxplorer"
+description = "This is a JupyterLab extension that allows users to explore and interact with cloud storage services."
 readme = "README.md"
 authors = [{name = "Navteca LLC", email = "info@navteca.com" }]
 urls = {text = "https://navteca.com"}
@@ -55,8 +55,8 @@ artifacts = ["jupyterlab_bxplorer/labextension"]
 exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
-"jupyterlab_bxplorer/labextension" = "share/jupyter/labextensions/jupyterlab_bxplorer"
-"install.json" = "share/jupyter/labextensions/jupyterlab_bxplorer/install.json"
+"jupyterlab_bxplorer/labextension" = "share/jupyter/labextensions/jupyterlab-bxplorer"
+"install.json" = "share/jupyter/labextensions/jupyterlab-bxplorer/install.json"
 "jupyter-config/server-config" = "etc/jupyter/jupyter_server_config.d"
 "jupyter-config/nb-config" = "etc/jupyter/jupyter_notebook_config.d"
 
