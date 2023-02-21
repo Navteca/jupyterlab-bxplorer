@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.4.0", "jupyterlab>=3.4.7,<4.0.0", "hatch-nodejs-version", "boto3-stubs<=1.26.0", "tzlocal<=4.2", "PyYAML<=6.0", "sqlalchemy<=1.4.44", "mypy-boto3-s3<=1.26.0.post1", "Werkzeug>=2.0.1"]
+requires = ["hatchling>=1.4.0", "jupyterlab>=3.4.7,<4.0.0", "hatch-nodejs-version"]
 build-backend = "hatchling.build"
 
 [project]
@@ -26,17 +26,15 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "jupyter_server>=1.6,<3",
-    "boto3-stubs<=1.26.0",
-    "tzlocal<=4.2",
-    "PyYAML<=6.0",
-    "sqlalchemy<=1.4.44",
-    "mypy-boto3-s3<=1.26.0.post1",
-    "Werkzeug>=2.0.1",
-    "psutil>=5.9.4",
-    "boto3<=1.24.62",
-    "psutil<=5.9.4",
-    "sqlalchemy<=2.0.1"
+    "jupyter_server",
+    "PyYAML",
+    "boto3-stubs",
+    "tzlocal",
+    "mypy-boto3-s3",
+    "Werkzeug",
+    "psutil",
+    "boto3",
+    "sqlalchemy"
 ]
 dynamic = ["version"]
 

@@ -33,6 +33,12 @@ We wanted to use a different approach handling AWS credentials. We also wanted t
 We are working on having a package in PyPi available. At the moment you can do the following:
 
 ```bash
+pip install jupyterlab-bxplorer
+```
+
+or
+
+```bash
 git clone https://github.com/Navteca/jupyterlab-bxplorer.git
 cd jupyterlab-bxplorer/
 npm install
