@@ -100,8 +100,9 @@ We are in a very early stage in terms of all the features we want to add to the 
   - [x] AWS
   - [ ] Google
   - [ ] Azure
-- [x] Removing storage objects from Favorites list
-- Downloading storage objects
+- [ ] Add folders-like objects inside storage objects to the Favorites list
+- [x] Remove storage objects from Favorites list
+- Download storage objects
   - [x] AWS
   - [ ] Google
   - [ ] Azure
@@ -148,7 +149,7 @@ We are working on a contributor document and guidelines with additional informat
 
 ### Found an issue? Have suggestions?
 
-Please open an [issue](https://github.com/Navteca/jupyterlab-bxplorer/issues), we would like yo hear from you.
+Please open an [issue](https://github.com/Navteca/jupyterlab-bxplorer/issues), we would like to hear from you.
 
 <br/>
 
