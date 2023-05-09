@@ -312,10 +312,11 @@ class DownloadsHandler(APIHandler):
                         file_names.append(key)
 
                 next_token = response.get("NextContinuationToken")
-            return file_names, folders
         except Exception as e:
             logger.info(f"Something went wrong getting the list of files => {e}")
             return None, None
+        else:
+            return file_names, folders
 
 
     def getDownloads(self):
