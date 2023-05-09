@@ -126,10 +126,10 @@ if __name__ == '__main__':
         else:
             raise NotEnoughSpaceOnDevice()
     except exceptions.ClientError as error:
-        if error.response['Error']['Code'] == 'NoSuchKey':
+        if error.response.get('Error', {}).get('Code', None) == 'NoSuchKey':
             print(f"The specified Bucket: {key} has not been found")
             message = f"The specified Bucket: {key} has not been found"
-        elif error.response['Error']['Code'] == 'NoSuchBucket':
+        elif error.response.get('Error', {}).get('Code', None) == 'NoSuchBucket':
             print(f"The specified Bucket: {bucket} has not been found")
             message = f"The specified Bucket: {bucket} has not been found"
         else:

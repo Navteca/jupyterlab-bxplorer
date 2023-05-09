@@ -1,47 +1,47 @@
+import boto3
 import concurrent.futures
 import functools
+import importlib.resources as pkg_resources
 import json
 import logging
 import os
-import sys
-import subprocess
+import requests
 import shlex
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Union
-from pathlib import Path, PurePath
-from shutil import which
+import sqlalchemy
+import subprocess
+import sys
+import tornado
 
+from botocore import UNSIGNED
+from botocore.config import Config
+from botocore.exceptions import ClientError
+from datetime import datetime, timedelta
+from jupyter_server.base.handlers import APIHandler
+from jupyter_server.utils import url_path_join
+from json import dumps
+#from mypy_boto3_s3.client import S3Client
+from mypy_boto3_s3.paginator import _PageIterator
+from mypy_boto3_s3.type_defs import (CommonPrefixTypeDef,
+                                     ListObjectsV2OutputTypeDef,
+                                     ObjectTypeDef)
+from pathlib import Path
+from shutil import which
+from typing import Any, Dict, List, Union
+from werkzeug.exceptions import BadRequest
 from yaml import YAMLError, load
+
+from .db_handler import DBHandler, Favorites, Downloads
+from .custom_encoders.JSONEncoder import DTEncoder
+from .custom_exceptions.CustomExceptions import ODSourceNotFound, GitHubAPICallRateLimitExceeded, BucketIsNotAccessibleError
+from .custom_types.ChonkyFileData import ChonkyFileData
+from .custom_types.ChonkyFilesListCache import ChonkyFileListCache
+from .custom_types.RequestResponse import RequestResponse
+from .FixUrllib951 import fix_urllib_951
 
 try:
     from yaml import CSafeLoader as SafeLoader
 except ImportError:
     from yaml import SafeLoader
-
-import boto3
-import requests
-import tornado
-from json import dumps
-from botocore import UNSIGNED
-from botocore.config import Config
-from botocore.exceptions import ClientError
-from jupyter_server.base.handlers import APIHandler
-from jupyter_server.utils import url_path_join
-#from mypy_boto3_s3.client import S3Client
-from mypy_boto3_s3.paginator import _PageIterator
-from mypy_boto3_s3.type_defs import (CommonPrefixTypeDef,
-                                     ListObjectsV2OutputTypeDef, ObjectTypeDef)
-from mypy_boto3_s3.client import S3Client
-import importlib.resources as pkg_resources
-import sqlalchemy
-from .db_handler import DBHandler, Favorites, Downloads
-from werkzeug.exceptions import BadRequest
-from .custom_encoders.JSONEncoder import DTEncoder
-from .custom_exceptions.CustomExceptions import ODSourceNotFound, GitHubAPICallRateLimitExceeded, BucketIsNotAccesibleError
-from .custom_types.ChonkyFileData import ChonkyFileData
-from .custom_types.ChonkyFilesListCache import ChonkyFileListCache
-from .custom_types.RequestResponse import RequestResponse
-from .FixUrllib951 import fix_urllib_951
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ od_sources: List[Dict[str, Any]] = [
 @functools.lru_cache()
 def _get_signed_s3_client():
     session = boto3.Session()
-    s3 = session.client("s3")
+    s3 = session.client("s3") # type: ignore
     return s3
 
 
@@ -124,10 +124,13 @@ class GetChonkyFileDataHandler(APIHandler):
                                 raise GitHubAPICallRateLimitExceeded(od_source)
                             open_data_files_list.expires_on = datetime.utcnow() + timedelta(days=1)  # type: ignore
 
-                            od_files_info = [{
-                                "od_bucket_name": os.path.basename(e['download_url']).split('.')[0],
-                                "download_url": e['download_url']}
-                                for e in od_files.json()]
+                            od_files_info = [
+                                {
+                                    "od_bucket_name": os.path.basename(e['download_url']).split('.')[0],
+                                    "download_url": e['download_url']
+                                }
+                                for e in od_files.json()
+                            ]
 
                             # Getting all files from GitHub
                             with concurrent.futures.ThreadPoolExecutor(30) as executor:
@@ -139,18 +142,20 @@ class GetChonkyFileDataHandler(APIHandler):
 
                             od_sources_information[:] = dict((v['name'], v) for v in od_sources_information if v).values()
 
-                            response = [ChonkyFileData(
-                                id=info['name'],
-                                name=info['name'],
-                                isDir=True,
-                                additionalInfo=[{
-                                    "openDataHumanName": info['human_name'],
-                                    "openDataDescription": info['long_description'],
-                                    "region": info['region'],
-                                    "type": client_type
-                                }]
+                            response = [
+                                ChonkyFileData(
+                                    id=info['name'],
+                                    name=info['name'],
+                                    isDir=True,
+                                    additionalInfo=[{
+                                        "openDataHumanName": info['human_name'],
+                                        "openDataDescription": info['long_description'],
+                                        "region": info['region'],
+                                        "type": client_type
+                                    }]
                                 ).as_dict()
-                                for info in od_sources_information if info]
+                                for info in od_sources_information if info
+                            ]
                             response = sorted(response, key=lambda d: d['name'].lower())
                             cache.files_list = response
                             cache.expires_on = datetime.now() + timedelta(days=1)
@@ -201,7 +206,7 @@ class GetChonkyFileDataHandler(APIHandler):
         except ODSourceNotFound as e:
             logger.info(f"Source {e.od_source} not found.")
         except BadRequest as e:
-            print(f"There has been an error procesing the request data in {sys._getframe(  ).f_code.co_name} => {e}")
+            print(f"There has been an error processing the request data in {sys._getframe(  ).f_code.co_name} => {e}")
         except ClientError as e:
             logger.info(
                 f"Boto3 Client Error while listing object in bucket: {e}")
@@ -212,43 +217,45 @@ class GetChonkyFileDataHandler(APIHandler):
 
 
     def get_bucket_objects(self, s3_client, bucket: str, prefix: str) -> List[ChonkyFileData]:
-        response = {}
+        chonkyFiles: List[ChonkyFileData] = []
         try:
-            chonkyFiles: List[ChonkyFileData] = []
             bucket_objects: ListObjectsV2OutputTypeDef = s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix if prefix != '/' else '', Delimiter='/')
             s3_objects: Union[List[ObjectTypeDef], None] = bucket_objects.get('Contents', None)
             s3_prefixes: Union[List[CommonPrefixTypeDef], None] = bucket_objects.get('CommonPrefixes', None)
             if s3_objects:
-                chonkyFiles += [ChonkyFileData(
-                    id=obj.get('Key', ''),
-                    name=os.path.basename(obj.get('Key', '')),
-                    modDate=obj.get('LastModified', ''),
-                    size=obj.get('Size'),
-                    additionalInfo=[{"region": bucket_objects.get('ResponseMetadata', {}).get('HTTPHeaders', {}).get('x-amz-bucket-region', '')}]) for obj in s3_objects]
+                chonkyFiles += [
+                    ChonkyFileData(
+                        id=obj.get('Key', ''),
+                        name=os.path.basename(obj.get('Key', '')),
+                        modDate=obj.get('LastModified', ''),
+                        size=obj.get('Size'),
+                        additionalInfo=[{"region": bucket_objects.get('ResponseMetadata', {}).get('HTTPHeaders', {}).get('x-amz-bucket-region', '')}]
+                    )
+                    for obj in s3_objects
+                ]
 
             if s3_prefixes:
-                chonkyFiles += [ChonkyFileData(
-                id=obj.get('Prefix', ''),
-                name=os.path.basename(obj.get('Prefix', '').strip('/')),
-                isDir=True,
-                additionalInfo=[{"region": bucket_objects.get('ResponseMetadata', {}).get('HTTPHeaders', {}).get('x-amz-bucket-region', '')}]) for obj in s3_prefixes]
-            response = chonkyFiles
+                chonkyFiles += [
+                    ChonkyFileData(
+                        id=obj.get('Prefix', ''),
+                        name=os.path.basename(obj.get('Prefix', '').strip('/')),
+                        isDir=True,
+                        additionalInfo=[{"region": bucket_objects.get('ResponseMetadata', {}).get('HTTPHeaders', {}).get('x-amz-bucket-region', '')}]
+                    )
+                    for obj in s3_prefixes
+                ]
         except ClientError as e:
             logger.info(f"Generic exception => {e.response}")
-            if e.response['Error']['Code'] == 'NoSuchBucket':
-                print(f"{e.response['Error']['Message']}: {e.response['Error']['BucketName']}")
+            if e.response.get('Error', {}).get('Code', None) == 'NoSuchBucket':
+                print(f"{e.response.get('Error', {}).get('Message', 'No Message')}: {e.response.get('Error', {}).get('BucketName', 'No bucket name')}")
             else:
                 logger.info(f"Other S3 ClientError => {e.response}")
-            response = []
-            return response
-        return response
+        return chonkyFiles
 
 
-    # TODO create data type for this
     def get_od_information_from_file(self, od_file_url: str) -> Dict[str, Any]:
         od_file_info = {}
         try:
-            # pprint(f"Getting information for => {os.path.basename(od_file_url).split('.')[0]}")
             info = requests.get(od_file_url)
             yaml_info = load(info.text, SafeLoader)
             if yaml_info['Resources'][0]['Type'] == 'S3 Bucket':
@@ -268,7 +275,7 @@ class GetChonkyFileDataHandler(APIHandler):
             return od_file_info
 
 
-class GetOpenDataSourcesListhandler(APIHandler):
+class GetOpenDataSourcesListHandler(APIHandler):
     @tornado.web.authenticated  # type: ignore
     def get(self):
         self.finish({"sources": list(map(lambda e: e['name'], od_sources))})
@@ -309,34 +316,6 @@ class DownloadsHandler(APIHandler):
         except Exception as e:
             logger.info(f"Something went wrong getting the list of files => {e}")
             return None, None
-
-
-    def download_files(self, s3_client, bucket_name, local_path, file_names, folders, prefix):
-        try:
-            local_path = Path(local_path)
-            isFile = PurePath(prefix).suffix != ''
-
-            for folder in folders:
-                folder_path = Path.joinpath(local_path, folder)
-                folder_path.mkdir(parents=True, exist_ok=True)
-
-            for file_name in file_names:
-                index = file_name.index(os.path.basename(os.path.normpath(PurePath(file_name).parent)))
-                new_file_name = PurePath(file_name).name if isFile else file_name[index:]
-                file_path = Path.joinpath(
-                        local_path,
-                        PurePath(prefix).name if not isFile else PurePath(''),
-                        (new_file_name
-                        if PurePath(prefix).name not in new_file_name 
-                        else new_file_name.replace(PurePath(prefix).name + '/', '')))
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-                if Path(file_path).exists():
-                    os.remove(file_path)
-                s3_client.download_file(bucket_name, file_name, str(file_path))
-        except Exception as e:
-            logger.info(f"There has been an error downloading files => {e}")
-        else:
-            return 'ok'  # TODO: This needs to be fixed
 
 
     def getDownloads(self):
@@ -468,8 +447,7 @@ class FavoritesHandler(APIHandler):
                     response.status_code = 602
                     response.error.code = 602
                     response.error.message = f"The bucket {path} is not accessible."
-                    #self.set_status(602, f"The bucket {path} is not accessible.")
-                    raise BucketIsNotAccesibleError(path)
+                    raise BucketIsNotAccessibleError(path)
                 new_obj = Favorites(path, dumps(chonky_object), bucket_source, bucket_source_type)
                 with self.db.get_session() as session:
                     bucketFound = session.query(Favorites.path).filter_by(path=path).first()
@@ -477,7 +455,6 @@ class FavoritesHandler(APIHandler):
                         response.status_code = 600
                         response.error.code = 600
                         response.error.message = f"The bucket {path} already exists in your favorites list."
-                        #self.set_status(600, f"The bucket {path} already exists.")
                     else:
                         session.add(new_obj)
                         session.commit()
@@ -487,18 +464,14 @@ class FavoritesHandler(APIHandler):
                 response.status_code = 603
                 response.error.code = 603
                 response.error.message = "Request Data is not correct."
-                #self.set_status(603, "Request Data is not correct.")
         except sqlalchemy.exc.IntegrityError as e:   # type: ignore
             logger.info(f'Integrity Check failed => {e}')
             response.status_code = 601
             response.error.code = 601
             response.error.message = f"Integrity check error {e}"
-            #self.set_status(601, f"Integrity check error {e}")
-            self.finish(response.as_dict())
-        except BucketIsNotAccesibleError as e:
+        except BucketIsNotAccessibleError as e:
             logger.info(f"{e}")
-            self.finish(response.as_dict())
-        else:
+        finally:
             self.finish(response.as_dict())
 
 
@@ -506,7 +479,6 @@ class FavoritesHandler(APIHandler):
     def delete(self):
         response: RequestResponse = RequestResponse()
         try:
-            # chonky_favorites = []
             request_data = self.get_json_body()
             if request_data:
                 with self.db.get_session() as session:
@@ -539,7 +511,7 @@ def setup_handlers(web_app):
     base_path = url_path_join(web_app.settings["base_url"], "jupyterlab-bxplorer")
     handlers = [
         (url_path_join(base_path, "get_file_data"), GetChonkyFileDataHandler),
-        (url_path_join(base_path, "/open_data/get_sources_list"), GetOpenDataSourcesListhandler),
+        (url_path_join(base_path, "/open_data/get_sources_list"), GetOpenDataSourcesListHandler),
         (url_path_join(base_path, "downloads"), DownloadsHandler),
         (url_path_join(base_path, "favorites"), FavoritesHandler)
     ]

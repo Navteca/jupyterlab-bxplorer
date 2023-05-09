@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any
 
 from .ChonkyFileData import ChonkyFileData
 

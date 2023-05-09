@@ -16,10 +16,10 @@ class GitHubAPICallRateLimitExceeded(Error):
         super().__init__(self.od_source)
 
     def __str__(self):
-        return f"The API call rate limite for {self.od_source} has been exceeded."
+        return f"The API call rate  for {self.od_source} has been exceeded."
 
 
-class BucketIsNotAccesibleError(Error):
+class BucketIsNotAccessibleError(Error):
     def __init__(self, bucket_name):
         self.bucket_name = bucket_name
         super().__init__(self.bucket_name)
