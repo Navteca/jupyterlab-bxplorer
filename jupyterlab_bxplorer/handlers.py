@@ -132,7 +132,6 @@ class GetChonkyFileDataHandler(APIHandler):
                                 for e in od_files.json()
                             ]
 
-                            # Getting all files from GitHub
                             with concurrent.futures.ThreadPoolExecutor(30) as executor:
                                 futures = {executor.submit(
                                     self.get_od_information_from_file, od_bucket['download_url']): od_bucket for od_bucket in od_files_info}
@@ -284,6 +283,7 @@ class GetOpenDataSourcesListHandler(APIHandler):
 class DownloadsHandler(APIHandler):
     db = DBHandler()
 
+
     def get_buckets_files_folders(self, s3_client, bucket_name, prefix=""):
         try:
             file_names = []
@@ -325,6 +325,7 @@ class DownloadsHandler(APIHandler):
             for download in session.query(Downloads).all():
                 downloads_list.append(download.serialize())
         return downloads_list
+
 
     @tornado.web.authenticated  # type: ignore
     def post(self):
@@ -415,12 +416,14 @@ class DownloadsHandler(APIHandler):
 class FavoritesHandler(APIHandler):
     db = DBHandler()
 
+
     def getAllFavorites(self):
         chonky_favorites = []
         with self.db.get_session() as session:
             for favorite in session.query(Favorites).all():
                 chonky_favorites.append(favorite.serialize())
         return chonky_favorites
+
 
     @tornado.web.authenticated  # type: ignore
     def get(self):
