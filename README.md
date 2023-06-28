@@ -30,7 +30,7 @@ We wanted to use a different approach handling AWS credentials. We also wanted t
 
 ### Installation
 
-We are working on having a package in PyPi available. At the moment you can do the following:
+You cna use `pip` to install this extension:
 
 ```bash
 pip install jupyterlab-bxplorer
