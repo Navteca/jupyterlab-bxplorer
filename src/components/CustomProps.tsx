@@ -7,6 +7,14 @@ export interface IModalHandlerProps {
     // stateSetter?: React.Dispatch<React.SetStateAction<string>>
 }
 
+export interface IFitsModalHandlerProps {
+    handleClose: () => void;
+    show: boolean;
+    filename: string;
+    headerInfo: any;
+    // stateSetter?: React.Dispatch<React.SetStateAction<string>>
+}
+
 export interface IFileBrowserProps {
     instanceId: string;
     selectedOpenDataSource?: string;

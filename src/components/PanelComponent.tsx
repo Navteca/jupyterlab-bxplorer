@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Tab from 'react-bootstrap/Tab';
 import Tabs from 'react-bootstrap/Tabs';
 import Stack from 'react-bootstrap/Stack';
+import FitsProvider from './FitsContext';
 import FavoriteProvider from './FavoriteContext';
 import DownloadProvider from './DownloadsContext';
 import FileBrowserComponent from './FileBrowserComponent';
@@ -37,6 +38,7 @@ export const PanelComponent: React.FC = () => {
         <div style={{ width: "100%", minWidth: "400px" }}>
             <FavoriteProvider>
                 <DownloadProvider>
+                    <FitsProvider>
                     <Tabs
                         defaultActiveKey='nasa'
                         id='buckets-tabs'
@@ -56,6 +58,7 @@ export const PanelComponent: React.FC = () => {
                             <FileBrowserComponent getRootFileStructure={getRootFileStructure} instanceId='favorites' />
                         </Tab>
                     </Tabs>
+                    </FitsProvider>
                 </DownloadProvider>
             </FavoriteProvider>
         </div >
