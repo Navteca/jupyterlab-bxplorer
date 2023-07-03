@@ -34,7 +34,10 @@ dependencies = [
     "Werkzeug",
     "psutil",
     "boto3",
-    "sqlalchemy"
+    "sqlalchemy",
+    "fsspec",
+    "S3Fs",
+    "astropy"
 ]
 dynamic = ["version"]
 

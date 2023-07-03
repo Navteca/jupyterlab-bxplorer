@@ -24,6 +24,7 @@ from mypy_boto3_s3.paginator import _PageIterator
 from mypy_boto3_s3.type_defs import (CommonPrefixTypeDef,
                                      ListObjectsV2OutputTypeDef,
                                      ObjectTypeDef)
+from astropy.io import fits
 from pathlib import Path
 from shutil import which
 from typing import Any, Dict, List, Union
@@ -509,6 +510,35 @@ class FavoritesHandler(APIHandler):
             self.finish(response.as_dict())
 
 
+class FitsHandler(APIHandler):
+    @tornado.web.authenticated  # type: ignore
+    def get(self):
+        try:            
+            request_data = self.request.arguments
+            self.log.info(request_data)
+            if request_data:
+                fits_file = request_data['file']
+                bucket = request_data['bucket']
+                anonymous = request_data['anon']
+            
+            file_name = str(fits_file[0], 'utf-8')
+            bucket_name = str(bucket[0], 'utf-8')
+            anon = str(anonymous[0], 'utf-8') == 'true'
+
+            fsspec_kwargs = {"anon": anon}
+            uri = f"s3://{bucket_name}/{file_name}"
+            # uri = "s3://nasa-irsa/spitzer/seip/seip_science/images/2/0000/20000011/0/20000011-0/20000011.20000011-0.MIPS.1.cov.fits"
+            with fits.open(uri, use_fsspec=True, fsspec_kwargs=fsspec_kwargs, memmap=True) as hdul:
+                header = hdul[0].header
+                info = {}
+                for key in header:
+                    if not isinstance(header[key], fits.header._HeaderCommentaryCards):
+                        info.update({key: str(header[key + '*'])})
+
+            self.finish(json.dumps(info))
+        except Exception as e:
+            self.log.info(f"There has been an exception reading the favorites db => {e}")
+
 def setup_handlers(web_app):
     host_pattern = ".*$"
 
@@ -517,6 +547,7 @@ def setup_handlers(web_app):
         (url_path_join(base_path, "get_file_data"), GetChonkyFileDataHandler),
         (url_path_join(base_path, "/open_data/get_sources_list"), GetOpenDataSourcesListHandler),
         (url_path_join(base_path, "downloads"), DownloadsHandler),
-        (url_path_join(base_path, "favorites"), FavoritesHandler)
+        (url_path_join(base_path, "favorites"), FavoritesHandler),
+        (url_path_join(base_path, "fits"), FitsHandler)
     ]
     web_app.add_handlers(host_pattern, handlers)
