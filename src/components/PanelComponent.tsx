@@ -39,25 +39,25 @@ export const PanelComponent: React.FC = () => {
             <FavoriteProvider>
                 <DownloadProvider>
                     <FitsProvider>
-                    <Tabs
-                        defaultActiveKey='nasa'
-                        id='buckets-tabs'
-                        activeKey={key}
-                        onSelect={(k) => setKey(k!)}
-                        justify>
-                        <Tab eventKey='private' title='Private'>
-                            <FileBrowserComponent getRootFileStructure={getRootFileStructure} instanceId='private' />
-                        </Tab>
-                        <Tab eventKey='public' title='Public'>
-                            <Stack gap={2} className="pt-2">
-                                <OpenDataDropdownComponent setODSource={setSelectedOpenDataSource} />
-                                <FileBrowserComponent getRootFileStructure={getRootFileStructure} instanceId='public' selectedOpenDataSource={selectedOpenDataSource} />
-                            </Stack>
-                        </Tab>
-                        <Tab eventKey='favorites' title='Favorites'>
-                            <FileBrowserComponent getRootFileStructure={getRootFileStructure} instanceId='favorites' />
-                        </Tab>
-                    </Tabs>
+                        <Tabs
+                            defaultActiveKey='nasa'
+                            id='buckets-tabs'
+                            activeKey={key}
+                            onSelect={(k) => setKey(k!)}
+                            justify>
+                            <Tab eventKey='private' title='Private'>
+                                <FileBrowserComponent getRootFileStructure={getRootFileStructure} instanceId='private' />
+                            </Tab>
+                            <Tab eventKey='public' title='Public'>
+                                <Stack gap={2} className="pt-2">
+                                    <OpenDataDropdownComponent setODSource={setSelectedOpenDataSource} />
+                                    <FileBrowserComponent getRootFileStructure={getRootFileStructure} instanceId='public' selectedOpenDataSource={selectedOpenDataSource} />
+                                </Stack>
+                            </Tab>
+                            <Tab eventKey='favorites' title='Favorites'>
+                                <FileBrowserComponent getRootFileStructure={getRootFileStructure} instanceId='favorites' />
+                            </Tab>
+                        </Tabs>
                     </FitsProvider>
                 </DownloadProvider>
             </FavoriteProvider>
