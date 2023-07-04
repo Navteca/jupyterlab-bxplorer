@@ -1,6 +1,6 @@
 {
   "name": "jupyterlab-bxplorer",
-  "version": "0.1.22",
+  "version": "0.1.24",
   "description": "This is a JupyterLab extension that allows users to explore and interact with cloud storage services.",
   "keywords": [
     "jupyter",

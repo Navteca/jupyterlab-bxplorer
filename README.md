@@ -127,6 +127,7 @@ We are in a very early stage in terms of all the features we want to add to the 
   - [ ] Azure
 - [ ] Tests
 - [ ] Documentation
+- [x] FITS files preview [Draft]
 
 <br/>
 
