@@ -1,0 +1,37 @@
+@import './fontawesome/css/fontawesome.css';
+@import './fontawesome/css/solid.css';
+@import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
+
+.containerFM {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+.chonky-dropdownList > li {
+  display: flex !important;
+  padding: 0 16px;
+}
+
+.chonky-contextMenuList > li {
+  display: flex !important;
+  padding: 0 16px;
+}
+
+.dropdown {
+  padding: 0 8px;
+}
+
+.downloads-container {
+  display: flex-root;
+  flex-direction: column;
+  flex-wrap: wrap;
+  height: auto;
+}
+
+.scroll {
+  height: 100%;
+  overflow-y: scroll;
+}
