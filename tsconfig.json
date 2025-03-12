@@ -18,8 +18,10 @@
     "rootDir": "src",
     "strict": true,
     "strictNullChecks": true,
-    "target": "ES2018",
-    "types": ["jest"]
+    "target": "ES2020",
+    "types": ["jest", "node"],
+    "skipLibCheck": true
   },
-  "include": ["src/*"]
+  "include": ["src/**/*", "style/fontawesome"],
+  "exclude": ["node_modules", "build"]
 }

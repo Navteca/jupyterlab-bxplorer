@@ -23,7 +23,18 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "jupyter_server>=2.4.0,<3"
+    "jupyter_server>=2.4.0,<3",
+    "PyYAML",
+    "boto3-stubs",
+    "tzlocal",
+    "mypy-boto3-s3",
+    "Werkzeug",
+    "psutil",
+    "boto3",
+    "sqlalchemy",
+    "fsspec",
+    "S3Fs",
+    "astropy"
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
