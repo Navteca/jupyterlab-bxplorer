@@ -19,7 +19,6 @@ import {
 } from '@syncfusion/ej2-react-filemanager';
 import { requestAPI } from '../handler';
 import { showDialog, Dialog, showErrorMessage } from '@jupyterlab/apputils';
-
 interface FMViewComponentProps {
   downloadsFolder: string;
   clientType: string;
@@ -195,10 +194,10 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
         }}
         detailsViewSettings={{
           columns: [
-            { field: "name", headerText: "Name", minWidth: 120, width: "auto" },
-            { field: "region", headerText: "Region", minWidth: 100, width: "120px" },
-            { field: "dateModified", headerText: "Modified", minWidth: 120, width: "150px" },
-            { field: "size", headerText: "Size", minWidth: 80, width: "100px" },
+            { field: "name", headerText: "Name", minWidth: 200, width: "auto" },
+            { field: "region", headerText: "Region", minWidth: 10, width: "auto" },
+            { field: "dateModified", headerText: "Modified", minWidth: 10, width: "auto" },
+            { field: "size", headerText: "Size", minWidth: 10, width: "auto" },
           ],
         }}
         view="Details"
