@@ -1,0 +1,14 @@
+{
+  "title": "BXplorer",
+  "description": "BXplorer settings.",
+  "type": "object",
+  "properties": {
+    "download-folder": {
+      "type": "string",
+      "title": "Download folder",
+      "description": "This is the folder where the downloaded files will be saved.",
+      "default": "downloads"
+    }
+  },
+  "additionalProperties": false
+}
