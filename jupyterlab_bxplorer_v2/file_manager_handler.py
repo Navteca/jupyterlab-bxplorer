@@ -18,8 +18,9 @@ import yaml
 from datetime import datetime
 
 import tornado.web
-import tornado.ioloop
+from tornado.ioloop import IOLoop
 import tornado.httpclient
+from concurrent.futures import ThreadPoolExecutor
 
 import boto3
 from botocore.exceptions import ClientError
@@ -32,7 +33,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from jupyter_server.base.handlers import APIHandler
+from .download_history import DownloadHistory, insert_download_history, update_download_history
 
+download_executor = ThreadPoolExecutor(max_workers=5)
 Base = declarative_base()
 
 
@@ -336,9 +339,7 @@ class FileManagerHandler(APIHandler):
             self.write({"error": "Error parsing JSON:" + str(e)})
             return
 
-        print(f"Received data: {data}")
         action = data.get("action", "").lower()
-        print(f"Requested action: {action}")
         path = data.get("path", "").strip()
         client_type = data.get("client_type", "public").lower()
         s3_client = get_s3_client(client_type)
@@ -356,7 +357,46 @@ class FileManagerHandler(APIHandler):
                 self.set_header("Content-Type", "application/json")
                 self.write(result)
         elif action == "download":
-            self._download_file(data, s3_client)
+            # Obtener bucket y key del archivo a descargar
+            downloads_folder = data.get("downloadsFolder", DOWNLOADS_DIR)
+            if data.get("data") and len(data.get("data")) > 0:
+                file_full_path = data["data"][0].get("path")
+            else:
+                file_full_path = os.path.join(
+                    data.get("path", ""), data.get("names", [""])[0]
+                )
+            file_path = file_full_path.strip("/")  # formatear "bucket/key"
+            parts = file_path.split("/", 1)
+            if len(parts) < 2:
+                self.set_status(400)
+                self.write(json.dumps({"error": "Path must be 'bucket/key'"}))
+                return
+            bucket_name, key = parts[0], parts[1]
+
+            # Preparar ruta local para guardar el archivo
+            os.makedirs(downloads_folder, exist_ok=True)
+            local_file_path = os.path.join(downloads_folder, os.path.basename(key))
+            # Evitar colisiones opcionalmente:
+            # if os.path.exists(local_file_path): local_file_path = f"{local_file_path}_{int(time.time())}"
+
+            # Registrar en la base de datos de historial como "downloading"
+            download_id = insert_download_history(bucket=bucket_name, key=key, local_path=local_file_path)
+            # Lanzar la descarga en segundo plano usando un hilo
+            asyncio.get_running_loop().run_in_executor(
+                download_executor,  # usar nuestro ThreadPoolExecutor
+                self._execute_download,  # función objetivo a ejecutar en el hilo
+                bucket_name, key, local_file_path, download_id, client_type
+            )
+            # Responder inmediatamente con estado inicial
+            self.set_header("Content-Type", "application/json")
+            self.write(json.dumps({
+                "status": "downloading",
+                "id": download_id,
+                "bucket": bucket_name,
+                "key": key,
+                "local_path": local_file_path
+            }))
+            return
         elif action == "details":
             self._get_details(data, s3_client)
         elif action == "search":
@@ -625,18 +665,16 @@ class FileManagerHandler(APIHandler):
             self.set_status(500)
             return json.dumps({"error": str(e)})
 
-    def _download_file(self, data, s3_client):
+    async def _download_file(self, data, s3_client):
         """
-        Downloads a file from S3 and saves it locally.
+        Downloads a file from S3 asynchronously in chunks and saves it locally,
+        updating the download history.
 
         Args:
             data (dict): Request data containing download details.
             s3_client (botocore.client.S3): The S3 client used to download the file.
-
-        Raises:
-            403: If the user does not have permission to download the file.
-            500: If an error occurs during download.
         """
+        download_record = None
         try:
             downloads_folder = data.get("downloadsFolder", DOWNLOADS_DIR)
             if data.get("data") and len(data.get("data")) > 0:
@@ -656,14 +694,47 @@ class FileManagerHandler(APIHandler):
                 )
                 return
             bucket_name, key = parts
+
+            # Retrieve the S3 object
             response = s3_client.get_object(Bucket=bucket_name, Key=key)
-            file_content = response["Body"].read()
             os.makedirs(downloads_folder, exist_ok=True)
             local_file_path = os.path.join(downloads_folder, os.path.basename(key))
+
+            # Insert a new download history record (assumes DownloadHistory model exists)
+            download_record = DownloadHistory(
+                bucket=bucket_name,
+                key=key,
+                status="downloading",
+                start_time=time.time(),
+            )
+            session.add(download_record)
+            session.commit()
+
+            # Stream the file in chunks (1 MB per chunk)
+            stream = response["Body"]
+            chunk_size = 1024 * 1024  # 1 MB
             with open(local_file_path, "wb") as f:
-                f.write(file_content)
+                while True:
+                    chunk = stream.read(chunk_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    # Flush the data to the client asynchronously\n                    await self.flush()
+
+            # Update history record as successful
+            download_record.status = "success"
+            download_record.end_time = time.time()
+            session.commit()
+
             self.write(json.dumps({"success": True, "file_saved": local_file_path}))
         except ClientError:
+            if download_record is not None:
+                download_record.status = "error"
+                download_record.error_message = (
+                    "You do not have permission to download this file."
+                )
+                download_record.end_time = time.time()
+                session.commit()
             self.set_status(403)
             self.write(
                 json.dumps(
@@ -671,6 +742,11 @@ class FileManagerHandler(APIHandler):
                 )
             )
         except Exception as e:
+            if download_record is not None:
+                download_record.status = "error"
+                download_record.error_message = str(e)
+                download_record.end_time = time.time()
+                session.commit()
             self.set_status(500)
             self.write(json.dumps({"error": str(e)}))
 
@@ -897,3 +973,29 @@ class FileManagerHandler(APIHandler):
             except Exception as e:
                 self.set_status(500)
                 return json.dumps({"error": str(e)})
+
+    def _execute_download(self, bucket, key, local_path, record_id, client_type):
+        """Función auxiliar que ejecuta la descarga de S3 y actualiza el historial.
+        Esto corre en un hilo separado para no bloquear el IOLoop."""
+        s3_client = get_s3_client(client_type)  # Crear un cliente S3 (mejor hacerlo aquí por seguridad de subprocesos)
+        try:
+            response = s3_client.get_object(Bucket=bucket, Key=key)
+            stream = response["Body"]
+            chunk_size = 1024 * 1024  # 1 MB
+            with open(local_path, "wb") as f:
+                # Leer del stream S3 en chunks y escribir al archivo local
+                while True:
+                    data = stream.read(chunk_size)
+                    if not data:
+                        break
+                    f.write(data)
+            # Si completó el bucle, la descarga fue exitosa
+            update_download_history(record_id, status="success")
+        except ClientError as e:
+            # Error de permisos o inexistencia de objeto
+            update_download_history(record_id, status="error",
+                                     error_message="S3 ClientError: " + str(e))
+        except Exception as e:
+            # Cualquier otro error
+            update_download_history(record_id, status="error",
+                                     error_message=str(e))

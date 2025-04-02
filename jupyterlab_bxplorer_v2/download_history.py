@@ -1,0 +1,75 @@
+import os
+import datetime
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+# Configuración de la base de datos (asegúrate de ajustar la ruta o conexión según tu entorno)
+DATABASE_URL = os.environ.get("DOWNLOAD_HISTORY_DB", "sqlite:///download_history.db")
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+Session = sessionmaker(bind=engine)
+
+Base = declarative_base()
+
+class DownloadHistory(Base):
+    __tablename__ = 'download_history'
+    id = Column(Integer, primary_key=True)
+    bucket = Column(String(128), nullable=False)
+    key = Column(String(1024), nullable=False)
+    local_path = Column(String(1024), nullable=False)
+    status = Column(String(64), nullable=False)
+    error_message = Column(Text, nullable=True)
+    start_time = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    end_time = Column(DateTime, nullable=True)
+
+# Crear la tabla en la base de datos (si aún no existe)
+Base.metadata.create_all(engine)
+
+def insert_download_history(bucket, key, local_path):
+    """
+    Inserta un nuevo registro en el historial de descargas.
+    Registra el bucket, key, local_path y establece el estado inicial como 'downloading'.
+    Devuelve el id del registro insertado.
+    """
+    session = Session()
+    try:
+        download = DownloadHistory(
+            bucket=bucket,
+            key=key,
+            local_path=local_path,
+            status="downloading",
+            start_time=datetime.datetime.utcnow()
+        )
+        session.add(download)
+        session.commit()
+        return download.id
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+
+def update_download_history(record_id, status, error_message=None):
+    """
+    Actualiza el registro de historial de descarga identificado por record_id.
+    Se actualiza el estado, y en caso de finalizar (con éxito o error), se establece el timestamp final.
+    Si se proporciona error_message, se almacena para referencia.
+    """
+    session = Session()
+    try:
+        download = session.query(DownloadHistory).get(record_id)
+        if download:
+            download.status = status
+            # Si la descarga ha finalizado (success o error), registra el end_time
+            if status in ["success", "error"]:
+                download.end_time = datetime.datetime.utcnow()
+            if error_message:
+                download.error_message = error_message
+            session.commit()
+        else:
+            raise ValueError(f"Registro con id {record_id} no encontrado.")
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
