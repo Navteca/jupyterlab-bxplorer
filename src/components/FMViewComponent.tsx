@@ -23,7 +23,7 @@ interface FMViewComponentProps {
   downloadsFolder: string;
   clientType: string;
 }
-
+import { useDownloadHistory } from '../contexts/DownloadHistoryContext';
 /**
  * FMViewComponent React Functional Component.
  *
@@ -35,6 +35,7 @@ interface FMViewComponentProps {
  * @returns {JSX.Element} The rendered component.
  */
 const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => {
+  const { fetchHistory, startPolling } = useDownloadHistory();
   const downloadsFolder = props.downloadsFolder || "downloads";
   const clientType = props.clientType || "private";
   const fileManagerRef = useRef<FileManagerComponent>(null);
@@ -116,7 +117,7 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
    *
    * @param {any} args - The event arguments from the context menu click.
    */
-  const contextMenuClickHandler = (args: any): void => {
+  const contextMenuClickHandler = async (args: any): Promise<void> => {
     console.log("menuClick args:", args);
     if (args.item && args.item.text === "Download") {
       args.cancel = true;
@@ -156,12 +157,15 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
       const formData = new URLSearchParams();
       formData.append("downloadInput", payload);
 
-      requestAPI('FileOperations', {
+      await requestAPI('FileOperations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString(),
       })
-        .then((data: any) => {
+        .then(async (data: any) => {
+          await fetchHistory();
+          startPolling();
+
           showDialog({
             title: 'Successful Operation',
             body: `File saved in: ${data.file_saved}`,

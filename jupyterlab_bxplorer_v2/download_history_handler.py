@@ -1,15 +1,16 @@
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from .download_history import DownloadHistory
 from jupyter_server.base.handlers import APIHandler
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
-
-engine = create_engine(
-    "sqlite:///cache.db", echo=False, connect_args={"check_same_thread": False}
+from .download_history import (
+    DownloadHistory,
+    Base,
+    clear_download_history,
+    delete_download_history,
+    DATABASE_URL
 )
+
+engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
@@ -23,6 +24,7 @@ class DownloadHistoryHandler(APIHandler):
 
     async def get(self):
         try:
+            print("GET download_history")
             # Se consultan todos los registros ordenados por fecha de inicio descendente
             records = (
                 session.query(DownloadHistory)
@@ -43,8 +45,59 @@ class DownloadHistoryHandler(APIHandler):
                         "error_message": record.error_message,
                     }
                 )
+            print("GET download_history ended")
+            print(f"downloads: {downloads}")
             self.set_header("Content-Type", "application/json")
             self.write(json.dumps(downloads))
+        except Exception as e:
+            self.set_status(500)
+            self.write(json.dumps({"error": str(e)}))
+
+    async def delete(self):
+        """
+        Maneja la eliminación de registros del historial:
+        - Si se pasa ?action=clean, se borran todas las descargas que no estén pendientes.
+        - Si se pasa ?id=<record_id>, se intenta eliminar ese registro individual,
+          validando que no se trate de una descarga pendiente.
+        """
+        action = self.get_argument("action", None)
+        try:
+            if action == "clean":
+                # Limpiar historial: eliminar descargas completadas o con error.
+                deleted_count = clear_download_history()
+                self.write(
+                    json.dumps(
+                        {
+                            "status": "success",
+                            "message": f"Historial limpiado. Registros eliminados: {deleted_count}.",
+                        }
+                    )
+                )
+            else:
+                record_id = self.get_argument("id", None)
+                if not record_id:
+                    self.set_status(400)
+                    self.write(
+                        json.dumps({"error": "Debe proporcionar un id o action=clean."})
+                    )
+                    return
+                try:
+                    record_id_int = int(record_id)
+                except ValueError:
+                    self.set_status(400)
+                    self.write(
+                        json.dumps({"error": "El id debe ser un número entero."})
+                    )
+                    return
+                delete_download_history(record_id_int)
+                self.write(
+                    json.dumps(
+                        {
+                            "status": "success",
+                            "message": f"Registro {record_id_int} eliminado.",
+                        }
+                    )
+                )
         except Exception as e:
             self.set_status(500)
             self.write(json.dumps({"error": str(e)}))

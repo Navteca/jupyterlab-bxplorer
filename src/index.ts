@@ -7,6 +7,7 @@ import { MainAreaWidget } from '@jupyterlab/apputils';
 import { FileManagerPanelWidget } from './widgets/FileManagerPanelWidget';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { registerLicense } from '@syncfusion/ej2-base';
+// import { DownloadHistoryPanelWidget } from './widgets/DownloadHistoryPanelWidget';
 
 registerLicense('Ngo9BigBOggjHTQxAR8/V1NNaF5cXmBCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXxcd3VcRmBeVkd+W0VWYUA=');
 
@@ -30,14 +31,23 @@ async function activate(app: JupyterFrontEnd, settingRegistry: ISettingRegistry)
       });
   }
 
-  const sideBarContent = new FileManagerPanelWidget(downloadsFolder);
-  const sideBarWidget = new MainAreaWidget<FileManagerPanelWidget>({
-    content: sideBarContent
+  const leftSideBarContent = new FileManagerPanelWidget(downloadsFolder);
+  const leftSideBarWidget = new MainAreaWidget<FileManagerPanelWidget>({
+    content: leftSideBarContent
   });
-  sideBarWidget.toolbar.hide();
-  sideBarWidget.title.icon = runIcon;
-  sideBarWidget.title.caption = 'File Manager';
-  app.shell.add(sideBarWidget, 'left', { rank: 501 });
+  leftSideBarWidget.toolbar.hide();
+  leftSideBarWidget.title.icon = runIcon;
+  leftSideBarWidget.title.caption = 'File Manager';
+  app.shell.add(leftSideBarWidget, 'left', { rank: 501 });
+
+  // const rightSideBarContent = new DownloadHistoryPanelWidget();
+  // const rightSideBarWidget = new MainAreaWidget<DownloadHistoryPanelWidget>({
+  //   content: rightSideBarContent
+  // });
+  // rightSideBarWidget.toolbar.hide();
+  // rightSideBarWidget.title.icon = runIcon;
+  // rightSideBarWidget.title.caption = 'Download history';
+  // app.shell.add(rightSideBarWidget, 'right', { rank: 502 });
 }
 
 const plugin: JupyterFrontEndPlugin<void> = {

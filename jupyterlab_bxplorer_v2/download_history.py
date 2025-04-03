@@ -11,19 +11,22 @@ Session = sessionmaker(bind=engine)
 
 Base = declarative_base()
 
+
 class DownloadHistory(Base):
-    __tablename__ = 'download_history'
+    __tablename__ = "download_history"
     id = Column(Integer, primary_key=True)
     bucket = Column(String(128), nullable=False)
     key = Column(String(1024), nullable=False)
     local_path = Column(String(1024), nullable=False)
     status = Column(String(64), nullable=False)
     error_message = Column(Text, nullable=True)
-    start_time = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    end_time = Column(DateTime, nullable=True)
+    start_time = Column(String(64), nullable=False)
+    end_time = Column(String(64), nullable=True)
+
 
 # Crear la tabla en la base de datos (si aún no existe)
 Base.metadata.create_all(engine)
+
 
 def insert_download_history(bucket, key, local_path):
     """
@@ -38,7 +41,7 @@ def insert_download_history(bucket, key, local_path):
             key=key,
             local_path=local_path,
             status="downloading",
-            start_time=datetime.datetime.utcnow()
+            start_time=datetime.datetime.utcnow(),
         )
         session.add(download)
         session.commit()
@@ -48,6 +51,7 @@ def insert_download_history(bucket, key, local_path):
         raise e
     finally:
         session.close()
+
 
 def update_download_history(record_id, status, error_message=None):
     """
@@ -68,6 +72,49 @@ def update_download_history(record_id, status, error_message=None):
             session.commit()
         else:
             raise ValueError(f"Registro con id {record_id} no encontrado.")
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+
+
+def clear_download_history():
+    """
+    Elimina todos los registros cuyo estado sea distinto de 'downloading'.
+    De esta forma se conservan en el historial únicamente las descargas pendientes.
+    """
+    session = Session()
+    try:
+        # Se eliminan registros que hayan finalizado (success o error)
+        deleted = (
+            session.query(DownloadHistory)
+            .filter(DownloadHistory.status != "downloading")
+            .delete(synchronize_session=False)
+        )
+        session.commit()
+        return deleted  # se retorna la cantidad de registros borrados (opcional)
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+
+
+def delete_download_history(record_id):
+    """
+    Elimina un registro del historial identificándolo por record_id,
+    siempre y cuando la descarga no se encuentre pendiente (status != 'downloading').
+    """
+    session = Session()
+    try:
+        download = session.query(DownloadHistory).get(record_id)
+        if not download:
+            raise ValueError("Registro no encontrado.")
+        if download.status == "downloading":
+            raise ValueError("No se puede borrar una descarga pendiente.")
+        session.delete(download)
+        session.commit()
     except Exception as e:
         session.rollback()
         raise e
