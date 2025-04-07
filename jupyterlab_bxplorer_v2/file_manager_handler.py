@@ -13,27 +13,30 @@ The module includes caching using SQLite to improve performance.
 
 import os
 import json
+import time
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 import asyncio
 import yaml
-from datetime import datetime
 
 import tornado.web
-from tornado.ioloop import IOLoop
 import tornado.httpclient
-from concurrent.futures import ThreadPoolExecutor
 
 import boto3
 from botocore.exceptions import ClientError
 from botocore import UNSIGNED
 from botocore.config import Config
 
-import time
 from sqlalchemy import create_engine, Column, String, Float, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from jupyter_server.base.handlers import APIHandler
-from .download_history import DownloadHistory, insert_download_history, update_download_history
+from .download_history import (
+    DownloadHistory,
+    insert_download_history,
+    update_download_history,
+)
 
 download_executor = ThreadPoolExecutor(max_workers=5)
 Base = declarative_base()
@@ -79,9 +82,9 @@ def _set_cache(key, value):
         value (dict): The value to store, serialized to JSON.
     """
     try:
-        serialized_value = json.dumps(value)  # Serializamos el dict a JSON
+        serialized_value = json.dumps(value)
         timestamp = time.time()
-        # Buscamos si ya existe un registro con la misma key
+
         cache_entry = session.query(Cache).filter_by(cache_key=key).first()
         if cache_entry:
             cache_entry.value = serialized_value
@@ -111,7 +114,7 @@ def _get_from_cache(key):
         cache_entry = session.query(Cache).filter_by(cache_key=key).first()
         if cache_entry:
             if time.time() - cache_entry.timestamp < _CACHE_TTL:
-                return json.loads(cache_entry.value)  # Deserializamos el JSON a dict
+                return json.loads(cache_entry.value)
         return None
     except Exception as e:
         print("Error retrieving from cache:", e)
@@ -131,8 +134,6 @@ def get_s3_client(client_type="private"):
     if client_type == "public":
         return boto3.client("s3", config=Config(signature_version=UNSIGNED))
     else:
-        # session = boto3.Session()
-        # return session.client("s3")
         return boto3.client("s3")
 
 
@@ -146,9 +147,9 @@ def format_size(bytes):
     Returns:
         str: Human-readable string representation of the size.
     """
-    for unidad in ["B", "KB", "MB", "GB", "TB"]:
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
         if bytes < 1024.0:
-            return f"{bytes:.2f} {unidad}"
+            return f"{bytes:.2f} {unit}"
         bytes /= 1024.0
 
 
@@ -203,7 +204,6 @@ def list_bucket_contents(s3_client, bucket_name, prefix):
     all_folders = []
     continuation_token = None
     while True:
-        # Obtener la región del bucket
         location = s3_client.get_bucket_location(Bucket=bucket_name)[
             "LocationConstraint"
         ]
@@ -215,7 +215,6 @@ def list_bucket_contents(s3_client, bucket_name, prefix):
 
         response = s3_client.list_objects_v2(**list_params)
 
-        # Procesar archivos (omitimos el objeto que define la carpeta)
         for obj in response.get("Contents", []):
             key = obj.get("Key", "")
             if key == prefix:
@@ -237,7 +236,6 @@ def list_bucket_contents(s3_client, bucket_name, prefix):
                 )
             )
 
-        # Procesar carpetas
         for common_prefix in response.get("CommonPrefixes", []):
             folder_prefix = common_prefix.get("Prefix", "")
             folder_name = folder_prefix.rstrip("/").split("/")[-1]
@@ -262,51 +260,6 @@ def list_bucket_contents(s3_client, bucket_name, prefix):
     return all_folders + all_files
 
 
-# class BaseHandler(APIHandler):
-#     """
-#     Base handler for managing API requests with default headers.
-
-#     Methods:
-#         set_default_headers: Sets CORS and allowed methods headers.
-#         options: Handles OPTIONS requests.
-#     """
-
-#     def set_default_headers(self):
-#         """
-#         Sets the default headers for CORS (Cross-Origin Resource Sharing) and allowed HTTP methods.
-
-#         This method configures the response to allow requests from any origin,
-#         specifies the headers that can be included in the request, and defines
-#         the HTTP methods that are permitted.
-
-#         Methods:
-#             GET, POST, PUT, DELETE, OPTIONS
-#         """
-#         # Allow any domain to access your API
-#         self.set_header("Access-Control-Allow-Origin", "*")
-#         # List the allowed headers
-#         self.set_header(
-#             "Access-Control-Allow-Headers",
-#             "x-requested-with, content-type, Authorization",
-#         )
-#         # List the allowed methods
-#         self.set_header(
-#             "Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"
-#         )
-
-#     # Handle OPTIONS requests
-#     def options(self, *args, **kwargs):
-#         """
-#         Handles OPTIONS requests.
-
-#         This method sets the status to 204 (No Content) to indicate that the
-#         preflight request is successful and terminates the request.
-#         """
-#         # no body is sent for an OPTIONS request
-#         self.set_status(204)
-#         self.finish()
-
-
 class FileManagerHandler(APIHandler):
     """
     Unified handler for FileManager operations (read, download, details, search).
@@ -321,8 +274,27 @@ class FileManagerHandler(APIHandler):
         _search_items: Searches for items within buckets or at the root level.
     """
 
+    def data_received(self, chunk):
+        """
+        Override required by the base class RequestHandler.
+        This method is not used in this handler, as the handler does not process streaming data.
+        """
+
     @tornado.web.authenticated
     async def post(self):
+        """
+        Handles POST requests for FileManager actions such as read, download, details, and search.
+
+        The request should include a JSON body with an "action" field specifying the operation to
+        perform:
+        - "read": List buckets or contents within a bucket.
+        - "download": Download a file from S3.
+        - "details": Retrieve metadata for a file or folder.
+        - "search": Search for files/folders in S3.
+
+        Returns:
+            JSON response with the result of the requested action.
+        """
         try:
             content_type = self.request.headers.get("Content-Type", "")
             if "application/json" in content_type:
@@ -357,7 +329,6 @@ class FileManagerHandler(APIHandler):
                 self.set_header("Content-Type", "application/json")
                 self.write(result)
         elif action == "download":
-            # Obtener bucket y key del archivo a descargar
             downloads_folder = data.get("downloadsFolder", DOWNLOADS_DIR)
             if data.get("data") and len(data.get("data")) > 0:
                 file_full_path = data["data"][0].get("path")
@@ -365,7 +336,7 @@ class FileManagerHandler(APIHandler):
                 file_full_path = os.path.join(
                     data.get("path", ""), data.get("names", [""])[0]
                 )
-            file_path = file_full_path.strip("/")  # formatear "bucket/key"
+            file_path = file_full_path.strip("/")
             parts = file_path.split("/", 1)
             if len(parts) < 2:
                 self.set_status(400)
@@ -373,29 +344,35 @@ class FileManagerHandler(APIHandler):
                 return
             bucket_name, key = parts[0], parts[1]
 
-            # Preparar ruta local para guardar el archivo
             os.makedirs(downloads_folder, exist_ok=True)
             local_file_path = os.path.join(downloads_folder, os.path.basename(key))
-            # Evitar colisiones opcionalmente:
-            # if os.path.exists(local_file_path): local_file_path = f"{local_file_path}_{int(time.time())}"
 
-            # Registrar en la base de datos de historial como "downloading"
-            download_id = insert_download_history(bucket=bucket_name, key=key, local_path=local_file_path)
-            # Lanzar la descarga en segundo plano usando un hilo
-            asyncio.get_running_loop().run_in_executor(
-                download_executor,  # usar nuestro ThreadPoolExecutor
-                self._execute_download,  # función objetivo a ejecutar en el hilo
-                bucket_name, key, local_file_path, download_id, client_type
+            download_id = insert_download_history(
+                bucket=bucket_name, key=key, local_path=local_file_path
             )
-            # Responder inmediatamente con estado inicial
+
+            asyncio.get_running_loop().run_in_executor(
+                download_executor,
+                self._execute_download,
+                bucket_name,
+                key,
+                local_file_path,
+                download_id,
+                client_type,
+            )
+
             self.set_header("Content-Type", "application/json")
-            self.write(json.dumps({
-                "status": "downloading",
-                "id": download_id,
-                "bucket": bucket_name,
-                "key": key,
-                "local_path": local_file_path
-            }))
+            self.write(
+                json.dumps(
+                    {
+                        "status": "downloading",
+                        "id": download_id,
+                        "bucket": bucket_name,
+                        "key": key,
+                        "local_path": local_file_path,
+                    }
+                )
+            )
             return
         elif action == "details":
             self._get_details(data, s3_client)
@@ -719,7 +696,6 @@ class FileManagerHandler(APIHandler):
                     if not chunk:
                         break
                     f.write(chunk)
-                    # Flush the data to the client asynchronously\n                    await self.flush()
 
             # Update history record as successful
             download_record.status = "success"
@@ -975,27 +951,23 @@ class FileManagerHandler(APIHandler):
                 return json.dumps({"error": str(e)})
 
     def _execute_download(self, bucket, key, local_path, record_id, client_type):
-        """Función auxiliar que ejecuta la descarga de S3 y actualiza el historial.
-        Esto corre en un hilo separado para no bloquear el IOLoop."""
-        s3_client = get_s3_client(client_type)  # Crear un cliente S3 (mejor hacerlo aquí por seguridad de subprocesos)
+        """Helper function that downloads from S3 and updates history.
+        Runs in a separate thread to avoid blocking the IOLoop."""
+        s3_client = get_s3_client(client_type)
         try:
             response = s3_client.get_object(Bucket=bucket, Key=key)
             stream = response["Body"]
             chunk_size = 1024 * 1024  # 1 MB
             with open(local_path, "wb") as f:
-                # Leer del stream S3 en chunks y escribir al archivo local
                 while True:
                     data = stream.read(chunk_size)
                     if not data:
                         break
                     f.write(data)
-            # Si completó el bucle, la descarga fue exitosa
             update_download_history(record_id, status="success")
         except ClientError as e:
-            # Error de permisos o inexistencia de objeto
-            update_download_history(record_id, status="error",
-                                     error_message="S3 ClientError: " + str(e))
+            update_download_history(
+                record_id, status="error", error_message="S3 ClientError: " + str(e)
+            )
         except Exception as e:
-            # Cualquier otro error
-            update_download_history(record_id, status="error",
-                                     error_message=str(e))
+            update_download_history(record_id, status="error", error_message=str(e))

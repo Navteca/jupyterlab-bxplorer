@@ -22,6 +22,12 @@ class BaseHandler(APIHandler):
     and common behavior for handling OPTIONS requests.
     """
 
+    def data_received(self, chunk):
+        """
+        Override required by the base class RequestHandler.
+        This method is not used in this handler, as the handler does not process streaming data.
+        """
+
     def set_default_headers(self):
         """
         Sets the default headers for CORS (Cross-Origin Resource Sharing).
@@ -62,7 +68,9 @@ class RouteHandler(BaseHandler):
         Handles GET requests and returns a JSON response indicating the endpoint's functionality.
         """
         self.finish(
-            json.dumps({"data": "This is /jupyterlab-bxplorer-v2/get-example endpoint!"})
+            json.dumps(
+                {"data": "This is /jupyterlab-bxplorer-v2/get-example endpoint!"}
+            )
         )
 
 

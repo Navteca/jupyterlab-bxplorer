@@ -1,6 +1,29 @@
+"""
+Module for managing a download history database using SQLAlchemy.
+
+This script defines a `download_history` table and provides functions to insert,
+update, delete, and clean up records related to file downloads. It stores details such as
+the S3 bucket name, object key, local file path, download status, error messages,
+and start/end timestamps.
+
+Environment Variables:
+- DOWNLOAD_HISTORY_DB: Optional. Overrides the default SQLite database URL.
+
+Classes:
+- DownloadHistory: SQLAlchemy model representing a single download record.
+
+Functions:
+- insert_download_history(bucket, key, local_path): Adds a new record with initial status
+  'downloading'.
+- update_download_history(record_id, status, error_message=None): Updates status and sets
+  end timestamp if applicable.
+- clear_download_history(): Deletes all records with a status other than 'downloading'.
+- delete_download_history(record_id): Deletes a record if its status is not 'downloading'.
+"""
+
 import os
 import datetime
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text
+from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -13,6 +36,14 @@ Base = declarative_base()
 
 
 class DownloadHistory(Base):
+    """
+    SQLAlchemy model for storing download history records.
+
+    Each record logs metadata about a file download, including the source
+    (bucket and key), destination path, current status, any error messages,
+    and timestamps for the start and end of the download.
+    """
+
     __tablename__ = "download_history"
     id = Column(Integer, primary_key=True)
     bucket = Column(String(128), nullable=False)
@@ -56,7 +87,8 @@ def insert_download_history(bucket, key, local_path):
 def update_download_history(record_id, status, error_message=None):
     """
     Actualiza el registro de historial de descarga identificado por record_id.
-    Se actualiza el estado, y en caso de finalizar (con éxito o error), se establece el timestamp final.
+    Se actualiza el estado, y en caso de finalizar (con éxito o error), se establece 
+    el timestamp final.
     Si se proporciona error_message, se almacena para referencia.
     """
     session = Session()
