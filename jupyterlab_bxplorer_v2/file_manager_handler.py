@@ -38,6 +38,8 @@ from .download_history import (
     update_download_history,
 )
 
+from .favorites import list_favorites
+
 download_executor = ThreadPoolExecutor(max_workers=5)
 Base = declarative_base()
 
@@ -320,8 +322,13 @@ class FileManagerHandler(APIHandler):
             if not path or path == "/":
                 if client_type == "private":
                     result = self._list_private_buckets(s3_client)
-                else:
+                elif client_type == "public":
                     result = await self._list_public_buckets()
+                else:
+                    files = list_favorites()
+                    cwd = format_item("Root", False, "/", True, "folder")
+                    result = {"cwd": cwd, "files": files}
+
                 self.set_header("Content-Type", "application/json")
                 self.write(result)
             else:

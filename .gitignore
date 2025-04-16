@@ -125,3 +125,5 @@ dmypy.json
 .yarn/
 
 cache.db
+favorites.db
+download_histgory.db

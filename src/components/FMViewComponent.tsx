@@ -22,6 +22,7 @@ import { showDialog, Dialog, showErrorMessage } from '@jupyterlab/apputils';
 interface FMViewComponentProps {
   downloadsFolder: string;
   clientType: string;
+  folderOptions: string[];
 }
 import { useDownloadHistory } from '../contexts/DownloadHistoryContext';
 /**
@@ -119,6 +120,108 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
    */
   const contextMenuClickHandler = async (args: any): Promise<void> => {
     console.log("menuClick args:", args);
+    if (args.item && args.item.text === "Add to favorites") {
+      args.cancel = true;
+
+      const currentPath = (fileManagerRef.current as any).path || "/";
+      const selectedItems = args.data || (fileManagerRef.current && (fileManagerRef.current as any).selectedItems);
+
+      console.log("current:", fileManagerRef.current);
+      console.log("currentPath:", currentPath);
+      console.log("selectedItems:", selectedItems);
+      console.log("clientType:", clientType);
+
+      if (currentPath !== "/") {
+        showDialog({
+          title: "Not Allowed",
+          body: "You can only add buckets to favorites from the root.",
+          buttons: [Dialog.okButton({ label: "OK" })],
+        });
+        return;
+      }
+
+      const selectedBucket = selectedItems?.[0];
+      if (!selectedBucket) {
+        showDialog({
+          title: "No Selection",
+          body: "No bucket selected to add to favorites.",
+          buttons: [Dialog.okButton({ label: "OK" })],
+        });
+        return;
+      }
+
+      // Llamada al servicio dummy
+      try {
+        await requestAPI('favorites', {
+          method: 'POST',
+          body: JSON.stringify({ bucket: selectedBucket, client_type: clientType }),
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        showDialog({
+          title: 'Success',
+          body: `"${selectedBucket}" added to favorites.`,
+          buttons: [Dialog.okButton({ label: 'OK' })]
+        });
+      } catch (error) {
+        console.error("Add to favorites error:", error);
+        showErrorMessage('Error', 'Failed to add bucket to favorites.');
+      }
+
+      return;
+    }
+
+    if (args.item && args.item.text === "Remove from favorites") {
+      args.cancel = true;
+
+      const currentPath = (fileManagerRef.current as any).path || "/";
+      const selectedItems = args.data || (fileManagerRef.current && (fileManagerRef.current as any).selectedItems);
+
+      if (currentPath !== "/") {
+        showDialog({
+          title: "Not Allowed",
+          body: "You can only remove buckets from favorites from the root.",
+          buttons: [Dialog.okButton({ label: "OK" })],
+        });
+        return;
+      }
+
+      const selectedBucket = selectedItems?.[0];
+      if (!selectedBucket) {
+        showDialog({
+          title: "No Selection",
+          body: "No bucket selected to remove from favorites.",
+          buttons: [Dialog.okButton({ label: "OK" })],
+        });
+        return;
+      }
+
+      try {
+        await requestAPI('favorites', {
+          method: 'DELETE',
+          body: JSON.stringify({ bucket: selectedBucket }),
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        showDialog({
+          title: 'Success',
+          body: `"${selectedBucket}" removed from favorites.`,
+          buttons: [Dialog.okButton({ label: 'OK' })]
+        });
+        const fm = fileManagerRef.current as any;
+        if (fm) {
+          const currentPath = fm.path;
+          fm.path = "/temp-refresh";
+          fm.path = currentPath;
+        }
+      } catch (error) {
+        console.error("Remove from favorites error:", error);
+        showErrorMessage('Error', 'Failed to remove bucket from favorites.');
+      }
+
+      return;
+    }
+
     if (args.item && args.item.text === "Download") {
       args.cancel = true;
       const currentPath = (fileManagerRef.current as any).path || "/";
@@ -192,7 +295,7 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
         }}
         contextMenuSettings={{
           file: ['Download', '|', 'Details'],
-          folder: ['Open', '|', 'Details'],
+          folder: props.folderOptions,
           layout: [],
           visible: true,
         }}

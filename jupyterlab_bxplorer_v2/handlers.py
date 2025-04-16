@@ -14,6 +14,11 @@ from jupyter_server.serverapp import ServerApp
 from jupyter_server.utils import url_path_join
 from .file_manager_handler import FileManagerHandler
 from .download_history_handler import DownloadHistoryHandler
+from .favorites_handler import FavoritesHandler
+
+from .favorites import Base, engine
+
+Base.metadata.create_all(engine)
 
 
 class BaseHandler(APIHandler):
@@ -90,5 +95,6 @@ def setup_handlers(web_app: ServerApp) -> None:
         (url_path_join(base_path, "get-example"), RouteHandler),
         (url_path_join(base_path, "FileOperations"), FileManagerHandler),
         (url_path_join(base_path, "download_history"), DownloadHistoryHandler),
+        (url_path_join(base_path, "favorites"), FavoritesHandler),
     ]
     web_app.add_handlers(host_pattern, handlers)
