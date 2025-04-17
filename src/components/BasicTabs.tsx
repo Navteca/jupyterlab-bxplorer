@@ -29,20 +29,20 @@ const BasicTabs: React.FC<BasicTabsProps> = (props): JSX.Element => {
       <Box sx={{ width: '100%' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
-            <Tab label="Private" {...a11yProps(0)} />
-            <Tab label="Public" {...a11yProps(1)} />
-            <Tab label="Favorites" {...a11yProps(2)} />
+            <Tab label="Favorites" {...a11yProps(0)} />
+            <Tab label="Private" {...a11yProps(1)} />
+            <Tab label="Public" {...a11yProps(2)} />
             <Tab label="Download History" {...a11yProps(3)} />
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0}>
-          <FMViewComponent downloadsFolder={props.downloadsFolder} clientType="private" folderOptions={['Open', '|', 'Add to favorites', 'Details']} />
+          <FMViewComponent downloadsFolder={props.downloadsFolder} clientType="favorites" folderOptions={['Open', '|', 'Remove from favorites', 'Details']} />
         </CustomTabPanel>
         <CustomTabPanel value={value} index={1}>
-          <FMViewComponent downloadsFolder={props.downloadsFolder} clientType="public" folderOptions={['Open', '|', 'Add to favorites', 'Details']} />
+          <FMViewComponent downloadsFolder={props.downloadsFolder} clientType="private" folderOptions={['Open', '|', 'Add to favorites', 'Details']} />
         </CustomTabPanel>
         <CustomTabPanel value={value} index={2}>
-          <FMViewComponent downloadsFolder={props.downloadsFolder} clientType="favorites" folderOptions={['Open', '|', 'Remove from favorites', 'Details']} />
+          <FMViewComponent downloadsFolder={props.downloadsFolder} clientType="public" folderOptions={['Open', '|', 'Add to favorites', 'Details']} />
         </CustomTabPanel>
         <CustomTabPanel value={value} index={3}>
           <DownloadHistory />

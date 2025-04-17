@@ -10,7 +10,7 @@
  *   - clientType: string representing the type of S3 client ('private' or 'public').
  */
 
-import React, { useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useRef } from 'react';
 import {
   FileManagerComponent,
   Inject,
@@ -35,11 +35,28 @@ import { useDownloadHistory } from '../contexts/DownloadHistoryContext';
  * @param {FMViewComponentProps} props - The component properties.
  * @returns {JSX.Element} The rendered component.
  */
-const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => {
+const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Element => {
   const { fetchHistory, startPolling } = useDownloadHistory();
   const downloadsFolder = props.downloadsFolder || "downloads";
   const clientType = props.clientType || "private";
   const fileManagerRef = useRef<FileManagerComponent>(null);
+
+  // Allow parent to call refresh (if desired)
+  useImperativeHandle(ref, () => ({
+    refresh: () => fileManagerRef.current?.refresh(),
+  }));
+
+  // Listens for the panel opening event and refreshes the FileManager
+  useEffect(() => {
+    const handlePanelOpen = () => {
+      // Forcing recalculation and rendering of FileManager
+      fileManagerRef.current?.refresh();
+    };
+    window.addEventListener('filemanager-panel-open', handlePanelOpen);
+    return () => {
+      window.removeEventListener('filemanager-panel-open', handlePanelOpen);
+    };
+  }, []);
 
   /**
    * Computes the base URL for backend API requests.
@@ -150,7 +167,6 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
         return;
       }
 
-      // Llamada al servicio dummy
       try {
         await requestAPI('favorites', {
           method: 'POST',
@@ -269,9 +285,18 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
           await fetchHistory();
           startPolling();
 
+          let savedPath: string;
+          if (typeof data === 'string') {
+            savedPath = data;
+          } else if (data.file_saved) {
+            savedPath = data.file_saved;
+          } else {
+            savedPath = downloadsFolder;
+          }
+
           showDialog({
             title: 'Successful Operation',
-            body: `File saved in: ${data.file_saved}`,
+            body: `File saved in: ${savedPath}`,
             buttons: [Dialog.okButton({ label: 'OK' })]
           });
         })
@@ -283,7 +308,7 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props): JSX.Element => 
   };
 
   return (
-    <div className="control-section" style={{ height: "100%" }}>
+    <div className="control-section" style={{ height: "100%", width: '100%' }}>
       <FileManagerComponent
         ref={fileManagerRef}
         id="file"
