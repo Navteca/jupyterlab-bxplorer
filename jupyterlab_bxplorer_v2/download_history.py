@@ -28,7 +28,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Configuración de la base de datos (asegúrate de ajustar la ruta o conexión según tu entorno)
-DATABASE_URL = os.environ.get("DOWNLOAD_HISTORY_DB", "sqlite:///download_history.db")
+DATABASE_URL = os.environ.get("DOWNLOAD_HISTORY_DB", "sqlite:///.download_history.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 Session = sessionmaker(bind=engine)
 

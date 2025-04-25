@@ -61,7 +61,7 @@ class Cache(Base):
 
 
 engine = create_engine(
-    "sqlite:///cache.db", echo=False, connect_args={"check_same_thread": False}
+    "sqlite:///.cache.db", echo=False, connect_args={"check_same_thread": False}
 )
 SessionLocal = sessionmaker(bind=engine)
 session = SessionLocal()
@@ -206,10 +206,19 @@ def list_bucket_contents(s3_client, bucket_name, prefix):
     all_folders = []
     continuation_token = None
     while True:
-        location = s3_client.get_bucket_location(Bucket=bucket_name)[
-            "LocationConstraint"
-        ]
-        region = location if location else "us-east-1"
+        # Determine region: treat unsigned (public) clients uniformly, handling both constant and string forms
+        sig = getattr(s3_client.meta.config, "signature_version", None)
+        if sig == UNSIGNED or sig == "unsigned":
+            region = "us-east-1"
+        else:
+            try:
+                loc_resp = s3_client.get_bucket_location(Bucket=bucket_name)
+                location = loc_resp.get("LocationConstraint")
+                region = location if location else "us-east-1"
+            except ClientError as e:
+                region = "us-east-1"
+                logger = globals().get("logger", print)
+                logger(f"Warning: could not get location for bucket {bucket_name}, defaulting to us-east-1: {e}")
 
         list_params = {"Bucket": bucket_name, "Prefix": prefix, "Delimiter": "/"}
         if continuation_token:
@@ -329,8 +338,6 @@ class FileManagerHandler(APIHandler):
             client_type = data.get("client_type", "public").lower()
             s3_client = get_s3_client(client_type)
             if not path or path == "/":
-                # Nivel 1: Raíz
-                print(f"Path: {path}")
                 if client_type == "private":
                     result = self._list_private_buckets(s3_client)
                 elif client_type == "public":
@@ -383,8 +390,6 @@ class FileManagerHandler(APIHandler):
                 self.set_header("Content-Type", "application/json")
                 self.write(result)
             else:
-                print(f"Path: {path}")
-                # Existe un path específico
                 if client_type == "public":
                     # Determine if path refers to a dataset, even if extension omitted
                     sanitized = path.lstrip("/")

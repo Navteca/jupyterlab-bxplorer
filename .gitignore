@@ -124,6 +124,6 @@ dmypy.json
 # Yarn cache
 .yarn/
 
-cache.db
-favorites.db
-download_history.db
+.cache.db
+.favorites.db
+.download_history.db

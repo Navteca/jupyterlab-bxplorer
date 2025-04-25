@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Configuración de la base de datos (asegúrate de ajustar la ruta o conexión según tu entorno)
-DATABASE_URL = os.environ.get("FAVORITES_DB", "sqlite:///favorites.db")
+DATABASE_URL = os.environ.get("FAVORITES_DB", "sqlite:///.favorites.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 Session = sessionmaker(bind=engine)
 
