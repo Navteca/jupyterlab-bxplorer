@@ -307,6 +307,28 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
     }
   };
 
+  /**
+   * Customize folder icons based on navigation depth.
+   */
+  const onActionComplete = (args: any): void => {
+    console.log("actionComplete args:", args);
+    // Solo manejamos eventos de lectura con cwd y files válidos
+    if (args.action === "read" && args.cwd && Array.isArray(args.files)) {
+      // Ahora sí es seguro usar args.cwd.path
+      const path = args.cwd.path || "/";
+      const depth = path.split("/").filter((seg: any) => seg).length;
+      args.files.forEach((file: any) => {
+        if (!file.isFile) {
+          if (depth === 1) {
+            file.iconCss = "first-level-icon";
+          } else if (depth === 2) {
+            file.iconCss = "second-level-icon";
+          }
+        }
+      });
+    }
+  };
+
   return (
     <div className="control-section" style={{ height: "100%", width: '100%' }}>
       <FileManagerComponent
@@ -314,6 +336,7 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
         id="file"
         ajaxSettings={ajaxSettings}
         beforeSend={onBeforeSend.bind(this)}
+        success={onActionComplete.bind(this)}
         toolbarSettings={{
           items: ['SortBy', 'Refresh'],
           visible: true,

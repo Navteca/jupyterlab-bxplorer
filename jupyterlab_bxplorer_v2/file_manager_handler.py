@@ -316,23 +316,128 @@ class FileManagerHandler(APIHandler):
         action = data.get("action", "").lower()
         path = data.get("path", "").strip()
         client_type = data.get("client_type", "public").lower()
+        # Reinterpretar client_type cuando proviene de favoritos
+        if client_type == "favorites":
+            if path and path.strip("/").split("/")[0].endswith(".yaml"):
+                client_type = "public"
+            else:
+                client_type = "private"
         s3_client = get_s3_client(client_type)
 
         if action == "read":
+            path = data.get("path", "").strip()
+            client_type = data.get("client_type", "public").lower()
+            s3_client = get_s3_client(client_type)
             if not path or path == "/":
+                # Nivel 1: Raíz
+                print(f"Path: {path}")
                 if client_type == "private":
                     result = self._list_private_buckets(s3_client)
                 elif client_type == "public":
-                    result = await self._list_public_buckets()
+                    result = await self._list_public_datasets()  # usar el nuevo método
                 else:
-                    files = list_favorites()
+                    favorites = list_favorites()
+                    processed = []
+                    for fav in favorites:
+                        fav_path = fav.get("path", "").strip("/")
+                        segments = fav_path.split("/")
+                        if len(segments) >= 3 and segments[0].endswith(".yaml"):
+                            # Formato dataset.yaml/bucket/key
+                            dataset = segments[0]
+                            bucket = segments[1]
+                            name = segments[-1]
+                            is_file = "." in name
+                            processed.append(
+                                format_item(
+                                    name,
+                                    is_file,
+                                    f"/{fav_path}",
+                                    not is_file,
+                                    "file" if is_file else "folder",
+                                )
+                            )
+                        elif len(segments) >= 2:
+                            # Formato bucket/key
+                            bucket = segments[0]
+                            name = segments[-1]
+                            is_file = "." in name
+                            processed.append(
+                                format_item(
+                                    name,
+                                    is_file,
+                                    f"/{fav_path}",
+                                    not is_file,
+                                    "file" if is_file else "folder",
+                                )
+                            )
+                        else:
+                            # Bucket solo
+                            bucket = segments[0]
+                            processed.append(
+                                format_item(
+                                    bucket, False, f"/{bucket}/", True, "folder"
+                                )
+                            )
                     cwd = format_item("Root", False, "/", True, "folder")
-                    result = {"cwd": cwd, "files": files}
-
+                    result = {"cwd": cwd, "files": processed}
                 self.set_header("Content-Type", "application/json")
                 self.write(result)
             else:
-                result = self._list_bucket_contents(s3_client, path, client_type)
+                print(f"Path: {path}")
+                # Existe un path específico
+                if client_type == "public":
+                    # Determine if path refers to a dataset, even if extension omitted
+                    sanitized = path.lstrip("/")
+                    first_seg = sanitized.split("/", 1)[0]
+                    datasets_cache = _get_from_cache("public_datasets_raw")
+                    dataset_file = None
+                    if first_seg.endswith(".yaml"):
+                        dataset_file = first_seg
+                    elif datasets_cache and any(ds.get("name") == first_seg + ".yaml" for ds in datasets_cache):
+                        dataset_file = first_seg + ".yaml"
+
+                    if dataset_file:
+                        # Path refers to a dataset
+                        dataset = dataset_file
+                        # Obtener el resto del path (después del dataset)
+                        rest = ""
+                        if "/" in sanitized:
+                            rest = sanitized.split("/", 1)[1]
+                        if rest == "" or rest == "/":
+                            # Nivel: buckets dentro del dataset
+                            result = await self._list_buckets_in_dataset(dataset)
+                        else:
+                            # Caso: hay un bucket/prefijo dentro del dataset
+                            bucket_name = rest.split("/", 1)[0]
+                            prefix = ""
+                            if "/" in rest:
+                                prefix = rest.split("/", 1)[1]
+                            try:
+                                items = list_bucket_contents(s3_client, bucket_name, prefix)
+                            except Exception as e:
+                                self.set_status(500)
+                                result = {"error": str(e)}
+                                self.write(result)
+                                return
+                            # Ajustar paths de los items para incluir el dataset al frente
+                            for item in items:
+                                item_path = item.get("path", "")
+                                if item_path.startswith(f"/{bucket_name}"):
+                                    item["path"] = f"/{dataset}/{item_path.lstrip('/')}"
+                            # Construir cwd con dataset+bucket
+                            cwd_name = prefix.split("/")[-1] if prefix else bucket_name
+                            cwd_path = f"/{dataset}/{bucket_name}/{prefix}".rstrip("/")
+                            if not cwd_path.endswith("/"):
+                                cwd_path += "/"
+                            cwd = format_item(cwd_name, False, cwd_path, True, "folder")
+                            result = {"cwd": cwd, "files": items}
+                    else:
+                        # Path público directo (no pertenece a ningún dataset)
+                        result = self._list_bucket_contents(s3_client, path, client_type)
+                else:
+                    # Navegación de bucket privado (sin cambios)
+                    result = self._list_bucket_contents(s3_client, path, client_type)
+
                 self.set_header("Content-Type", "application/json")
                 self.write(result)
         elif action == "download":
@@ -344,12 +449,43 @@ class FileManagerHandler(APIHandler):
                     data.get("path", ""), data.get("names", [""])[0]
                 )
             file_path = file_full_path.strip("/")
-            parts = file_path.split("/", 1)
-            if len(parts) < 2:
+            segments = file_path.split("/")
+
+            if len(segments) < 2:
                 self.set_status(400)
-                self.write(json.dumps({"error": "Path must be 'bucket/key'"}))
+                self.write(
+                    json.dumps({"error": "Path must include at least bucket and key"})
+                )
                 return
-            bucket_name, key = parts[0], parts[1]
+
+            # Handle public datasets without explicit .yaml extension
+            dataset_segment = segments[0]
+            datasets_cache = _get_from_cache("public_datasets_raw")
+            if client_type == "public":
+                if (
+                    not dataset_segment.endswith(".yaml")
+                    and datasets_cache
+                    and any(ds.get("name") == dataset_segment + ".yaml" for ds in datasets_cache)
+                ):
+                    dataset_segment = dataset_segment + ".yaml"
+
+            # Determine bucket and key based on whether this is a dataset path
+            if dataset_segment.endswith(".yaml"):
+                # Format: dataset.yaml / bucket / key...
+                if len(segments) < 3:
+                    self.set_status(400)
+                    self.write(
+                        json.dumps(
+                            {"error": "Path must include dataset.yaml, bucket and key"}
+                        )
+                    )
+                    return
+                bucket_name = segments[1]
+                key = "/".join(segments[2:])
+            else:
+                # Classic format: bucket / key...
+                bucket_name = segments[0]
+                key = "/".join(segments[1:])
 
             os.makedirs(downloads_folder, exist_ok=True)
             local_file_path = os.path.join(downloads_folder, os.path.basename(key))
@@ -516,6 +652,15 @@ class FileManagerHandler(APIHandler):
                 final_results.append(res)
 
         flattened = [obj for sublist in final_results for obj in sublist]
+        # Remove duplicate buckets by name
+        unique_buckets = []
+        seen_names = set()
+        for bucket in flattened:
+            name = bucket.get("name")
+            if name not in seen_names:
+                seen_names.add(name)
+                unique_buckets.append(bucket)
+        flattened = unique_buckets
 
         try:
             result = {
@@ -540,6 +685,140 @@ class FileManagerHandler(APIHandler):
         except Exception as e:
             self.set_status(500)
             return json.dumps({"error": "Error downloading public buckets:" + str(e)})
+
+    async def _list_public_datasets(self):
+        cache_key = "public_datasets"
+        raw_cache_key = "public_datasets_raw"
+        cached = _get_from_cache(cache_key)
+        if cached:
+            return cached
+
+        try:
+            http_client = tornado.httpclient.AsyncHTTPClient()
+            response = await http_client.fetch(PUBLIC_BUCKETS_URL)
+            datasets_json = json.loads(response.body.decode())
+        except Exception as e:
+            self.set_status(500)
+            return {"error": f"Error fetching dataset list: {e}"}
+
+        # Construye lista de carpetas
+        # Construye la respuesta para el frontend
+        files = []
+        for item in datasets_json:
+            name = item.get("name")
+            if not name.endswith(".yaml"):
+                continue
+            # Strip the .yaml extension for display purposes, but keep it in the path
+            display_name = name[:-5] if name.endswith(".yaml") else name
+            files.append(
+                {
+                    "name": display_name,
+                    "isFile": False,
+                    "path": f"/{name}/",
+                    "hasChild": True,
+                    "type": "folder",
+                    "size": "-",
+                    "dateModified": "-",
+                }
+            )
+
+        cwd = {
+            "name": "Root",
+            "isFile": False,
+            "path": "/",
+            "hasChild": True,
+            "type": "folder",
+            "size": "-",
+            "dateModified": "-",
+        }
+        result = {"cwd": cwd, "files": files}
+        # Guarda en caché el JSON original y la respuesta formateada
+        try:
+            _set_cache(cache_key, {"cwd": cwd, "files": files})
+            _set_cache(raw_cache_key, datasets_json)
+        finally:
+            session.close()
+
+        return result
+
+    async def _list_buckets_in_dataset(self, dataset_name):
+        cache_key = f"public_buckets_{dataset_name}"
+        cached = _get_from_cache(cache_key)
+        if cached:
+            return cached
+
+        # Buscar el download_url del dataset en el JSON cacheado
+        datasets_cache = _get_from_cache("public_datasets_raw")
+        download_url = None
+
+        if datasets_cache:
+            for ds in datasets_cache:
+                if ds.get("name") == dataset_name:
+                    download_url = ds.get("download_url")
+                    if not download_url or not download_url.startswith("http"):
+                        self.set_status(500)
+                        return {
+                            "error": f"El dataset '{dataset_name}' tiene un download_url inválido."
+                        }
+                    break
+
+        if not download_url:
+            self.set_status(404)
+            return {
+                "error": f"No se encontró el dataset '{dataset_name}' o su download_url."
+            }
+
+        # Descargar y parsear YAML
+        try:
+            http_client = tornado.httpclient.AsyncHTTPClient()
+            response = await http_client.fetch(download_url)
+            yaml_text = response.body.decode()
+            data = yaml.safe_load(yaml_text)
+        except Exception as e:
+            self.set_status(500)
+            return {"error": f"Error loading dataset YAML: {e}"}
+
+        resources = data.get("Resources", [])
+        files = []
+        for res in resources:
+            res_type = res.get("Type", "")
+            if res_type and "s3 bucket" in res_type.lower():
+                arn = res.get("ARN", "")
+                bucket_name = self.extract_bucket_name(arn)
+                if not bucket_name:
+                    continue
+                region = res.get("Region", "")
+                files.append(
+                    {
+                        "name": bucket_name,
+                        "isFile": False,
+                        "path": f"/{dataset_name}/{bucket_name}/",
+                        "hasChild": True,
+                        "type": "folder",
+                        "size": "-",
+                        "dateModified": "-",
+                        "region": region,
+                    }
+                )
+
+        cwd = {
+            "name": dataset_name,
+            "isFile": False,
+            "path": f"/{dataset_name}/",
+            "hasChild": True,
+            "type": "folder",
+            "size": "-",
+            "dateModified": "-",
+        }
+
+        result = {"cwd": cwd, "files": files}
+
+        try:
+            _set_cache(cache_key, result)
+        finally:
+            session.close()
+
+        return result
 
     def extract_bucket_name(self, arn: str) -> str:
         """
@@ -668,16 +947,34 @@ class FileManagerHandler(APIHandler):
                     data.get("path", ""), data.get("names", [""])[0]
                 )
             file_path = file_full_path.strip("/")
-            parts = file_path.split("/", 1)
-            if len(parts) < 2:
+            segments = file_path.split("/")
+            if len(segments) < 2:
                 self.set_status(400)
                 self.write(
                     json.dumps(
-                        {"error": "The file path must follow the format 'bucket/key'"}
+                        {"error": "The file path must include at least bucket and key"}
                     )
                 )
                 return
-            bucket_name, key = parts
+
+            if segments[0].endswith(".yaml"):
+                # Formato: dataset.yaml / bucket / key...
+                if len(segments) < 3:
+                    self.set_status(400)
+                    self.write(
+                        json.dumps(
+                            {
+                                "error": "The file path must include dataset.yaml, bucket and key"
+                            }
+                        )
+                    )
+                    return
+                bucket_name = segments[1]
+                key = "/".join(segments[2:])
+            else:
+                # Formato clásico: bucket / key...
+                bucket_name = segments[0]
+                key = "/".join(segments[1:])
 
             # Retrieve the S3 object
             response = s3_client.get_object(Bucket=bucket_name, Key=key)
@@ -830,20 +1127,16 @@ class FileManagerHandler(APIHandler):
     async def _search_items(self, data, s3_client, client_type):
         """
         Searches for items in S3 buckets.
-
         This method searches for matching items either in the root (buckets) or within
-        a specified bucket.
-
+        a specified bucket or dataset.
         Args:
             data (dict): Request data containing the search string and path.
             s3_client (botocore.client.S3): The S3 client.
             client_type (str): Type of client ('private' or 'public').
-
         Returns:
             str: JSON-encoded search results.
         """
         search_text = data.get("searchString", "").replace("*", "").lower()
-
         if not search_text:
             self.set_status(400)
             return json.dumps({"error": "The 'searchString' parameter is required."})
@@ -867,34 +1160,178 @@ class FileManagerHandler(APIHandler):
                     self.set_status(500)
                     return json.dumps({"error": str(e)})
             else:
-                public_buckets_str = await self._list_public_buckets()
-                try:
+                # MODIFICACIÓN: filtrar sobre datasets, no buckets
+                public_datasets = _get_from_cache("public_datasets")
+                if not public_datasets:
+                    public_datasets = await self._list_public_datasets()
 
-                    if not isinstance(public_buckets_str, dict):
-                        public_buckets_data = json.loads(public_buckets_str)
-                    else:
-                        public_buckets_data = public_buckets_str
-                except Exception as e:
-                    self.set_status(500)
-                    return json.dumps(
-                        {"error": "Error parsing the list of public buckets:" + str(e)}
-                    )
                 filtered = [
                     item
-                    for item in public_buckets_data.get("files", [])
+                    for item in public_datasets.get("files", [])
                     if search_text in item.get("name", "").lower()
                 ]
-                cwd = public_buckets_data.get(
+                cwd = public_datasets.get(
                     "cwd", format_item("Root", False, "/", True, "folder")
                 )
                 return json.dumps({"cwd": cwd, "files": filtered})
         else:
             sanitized = path.lstrip("/")
-            parts = sanitized.split("/", 1)
-            bucket_name = parts[0]
-            prefix = parts[1] if len(parts) > 1 else ""
-            try:
-                if client_type == "private":
+            segments = sanitized.split("/")
+            if client_type == "public":
+                if segments[0].endswith(".yaml"):
+                    # Dentro de un dataset
+                    dataset = segments[0]
+                    # MODIFICACIÓN: soporto len(segments) == 1 o == 2 y segments[1] == ""
+                    if len(segments) == 1 or (len(segments) == 2 and segments[1] == ""):
+                        # Búsqueda a nivel de buckets dentro del dataset
+                        dataset_buckets = await self._list_buckets_in_dataset(dataset)
+                        filtered = [
+                            b
+                            for b in dataset_buckets.get("files", [])
+                            if search_text in b.get("name", "").lower()
+                        ]
+                        cwd = dataset_buckets.get(
+                            "cwd",
+                            format_item(dataset, False, f"/{dataset}/", True, "folder"),
+                        )
+                        return json.dumps({"cwd": cwd, "files": filtered})
+                    else:
+                        # Búsqueda dentro de un bucket del dataset
+                        bucket_name = segments[1]
+                        prefix = "/".join(segments[2:]) if len(segments) > 2 else ""
+                        list_params = {
+                            "Bucket": bucket_name,
+                            "Prefix": prefix,
+                            "Delimiter": "/",
+                        }
+                        try:
+                            response = s3_client.list_objects_v2(**list_params)
+                            region = (
+                                s3_client.get_bucket_location(Bucket=bucket_name).get(
+                                    "LocationConstraint"
+                                )
+                                or "us-east-1"
+                            )
+                            matching_files = []
+                            matching_folders = []
+                            for obj in response.get("Contents", []):
+                                key = obj.get("Key", "")
+                                if search_text in key.lower():
+                                    file_name = key.split("/")[-1]
+                                    size = obj.get("Size", 0)
+                                    last_modified = obj.get("LastModified")
+                                    date_modified = (
+                                        last_modified.isoformat()
+                                        if last_modified
+                                        else ""
+                                    )
+                                    matching_files.append(
+                                        format_item(
+                                            file_name,
+                                            True,
+                                            f"/{dataset}/{bucket_name}/{key}",
+                                            False,
+                                            "file",
+                                            size,
+                                            date_modified,
+                                            region=region,
+                                        )
+                                    )
+                            for common_prefix in response.get("CommonPrefixes", []):
+                                folder_prefix = common_prefix.get("Prefix", "")
+                                if search_text in folder_prefix.lower():
+                                    folder_name = folder_prefix.rstrip("/").split("/")[
+                                        -1
+                                    ]
+                                    matching_folders.append(
+                                        format_item(
+                                            folder_name,
+                                            False,
+                                            f"/{dataset}/{bucket_name}/{folder_prefix}",
+                                            True,
+                                            "folder",
+                                            region=region,
+                                        )
+                                    )
+                            cwd_name = prefix.split("/")[-1] if prefix else bucket_name
+                            cwd_path = (
+                                f"/{dataset}/{bucket_name}/{prefix}".rstrip("/") + "/"
+                            )
+                            cwd = format_item(cwd_name, False, cwd_path, True, "folder")
+                            return json.dumps(
+                                {"cwd": cwd, "files": matching_folders + matching_files}
+                            )
+                        except Exception as e:
+                            self.set_status(500)
+                            return json.dumps({"error": str(e)})
+                else:
+                    # comportamiento original para buckets fuera de datasets
+                    bucket_name = segments[0]
+                    prefix = "/".join(segments[1:]) if len(segments) > 1 else ""
+                    try:
+                        list_params = {
+                            "Bucket": bucket_name,
+                            "Prefix": prefix,
+                            "Delimiter": "/",
+                        }
+                        response = s3_client.list_objects_v2(**list_params)
+                        region = (
+                            s3_client.get_bucket_location(Bucket=bucket_name).get(
+                                "LocationConstraint"
+                            )
+                            or "us-east-1"
+                        )
+                        matching_files = []
+                        matching_folders = []
+                        for obj in response.get("Contents", []):
+                            key = obj.get("Key", "")
+                            if search_text in key.lower():
+                                file_name = key.split("/")[-1]
+                                size = obj.get("Size", 0)
+                                last_modified = obj.get("LastModified")
+                                date_modified = (
+                                    last_modified.isoformat() if last_modified else ""
+                                )
+                                matching_files.append(
+                                    format_item(
+                                        file_name,
+                                        True,
+                                        f"/{bucket_name}/{key}",
+                                        False,
+                                        "file",
+                                        size,
+                                        date_modified,
+                                        region=region,
+                                    )
+                                )
+                        for common_prefix in response.get("CommonPrefixes", []):
+                            folder_prefix = common_prefix.get("Prefix", "")
+                            if search_text in folder_prefix.lower():
+                                folder_name = folder_prefix.rstrip("/").split("/")[-1]
+                                matching_folders.append(
+                                    format_item(
+                                        folder_name,
+                                        False,
+                                        f"/{bucket_name}/{folder_prefix}",
+                                        True,
+                                        "folder",
+                                        region=region,
+                                    )
+                                )
+                        cwd_name = prefix.split("/")[-1] if prefix else bucket_name
+                        cwd_path = f"/{bucket_name}/{prefix}".rstrip("/") + "/"
+                        cwd = format_item(cwd_name, False, cwd_path, True, "folder")
+                        return json.dumps(
+                            {"cwd": cwd, "files": matching_folders + matching_files}
+                        )
+                    except Exception as e:
+                        self.set_status(500)
+                        return json.dumps({"error": str(e)})
+            else:
+                # private bucket search (original logic)
+                bucket_name = segments[0]
+                prefix = "/".join(segments[1:]) if len(segments) > 1 else ""
+                try:
                     try:
                         s3_client.head_bucket(Bucket=bucket_name)
                     except ClientError:
@@ -904,58 +1341,58 @@ class FileManagerHandler(APIHandler):
                                 "error": f"You do not have permission to access the bucket {bucket_name}."
                             }
                         )
-                list_params = {
-                    "Bucket": bucket_name,
-                    "Prefix": prefix,
-                    "Delimiter": "/",
-                }
-                response = s3_client.list_objects_v2(**list_params)
-                matching_files = []
-                matching_folders = []
-                for obj in response.get("Contents", []):
-                    key = obj.get("Key", "")
-                    if search_text in key.lower():
-                        file_name = key.split("/")[-1]
-                        size = obj.get("Size", 0)
-                        last_modified = obj.get("LastModified")
-                        date_modified = (
-                            last_modified.isoformat() if last_modified else ""
-                        )
-                        matching_files.append(
-                            format_item(
-                                file_name,
-                                True,
-                                f"/{bucket_name}/{key}",
-                                False,
-                                "file",
-                                size,
-                                date_modified,
+                    list_params = {
+                        "Bucket": bucket_name,
+                        "Prefix": prefix,
+                        "Delimiter": "/",
+                    }
+                    response = s3_client.list_objects_v2(**list_params)
+                    matching_files = []
+                    matching_folders = []
+                    for obj in response.get("Contents", []):
+                        key = obj.get("Key", "")
+                        if search_text in key.lower():
+                            file_name = key.split("/")[-1]
+                            size = obj.get("Size", 0)
+                            last_modified = obj.get("LastModified")
+                            date_modified = (
+                                last_modified.isoformat() if last_modified else ""
                             )
-                        )
-                for common_prefix in response.get("CommonPrefixes", []):
-                    folder_prefix = common_prefix.get("Prefix", "")
-                    if search_text in folder_prefix.lower():
-                        folder_name = folder_prefix.rstrip("/").split("/")[-1]
-                        matching_folders.append(
-                            format_item(
-                                folder_name,
-                                False,
-                                f"/{bucket_name}/{folder_prefix}",
-                                True,
-                                "folder",
+                            matching_files.append(
+                                format_item(
+                                    file_name,
+                                    True,
+                                    f"/{bucket_name}/{key}",
+                                    False,
+                                    "file",
+                                    size,
+                                    date_modified,
+                                )
                             )
-                        )
-                cwd_name = prefix.split("/")[-1] if prefix else bucket_name
-                cwd_path = f"/{bucket_name}/{prefix}".rstrip("/")
-                if not cwd_path:
-                    cwd_path = f"/{bucket_name}/"
-                cwd = format_item(cwd_name, False, cwd_path, True, "folder")
-                return json.dumps(
-                    {"cwd": cwd, "files": matching_folders + matching_files}
-                )
-            except Exception as e:
-                self.set_status(500)
-                return json.dumps({"error": str(e)})
+                    for common_prefix in response.get("CommonPrefixes", []):
+                        folder_prefix = common_prefix.get("Prefix", "")
+                        if search_text in folder_prefix.lower():
+                            folder_name = folder_prefix.rstrip("/").split("/")[-1]
+                            matching_folders.append(
+                                format_item(
+                                    folder_name,
+                                    False,
+                                    f"/{bucket_name}/{folder_prefix}",
+                                    True,
+                                    "folder",
+                                )
+                            )
+                    cwd_name = prefix.split("/")[-1] if prefix else bucket_name
+                    cwd_path = f"/{bucket_name}/{prefix}".rstrip("/")
+                    if not cwd_path:
+                        cwd_path = f"/{bucket_name}/"
+                    cwd = format_item(cwd_name, False, cwd_path, True, "folder")
+                    return json.dumps(
+                        {"cwd": cwd, "files": matching_folders + matching_files}
+                    )
+                except Exception as e:
+                    self.set_status(500)
+                    return json.dumps({"error": str(e)})
 
     def _execute_download(self, bucket, key, local_path, record_id, client_type):
         """Helper function that downloads from S3 and updates history.

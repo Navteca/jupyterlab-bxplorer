@@ -1,1 +1,11 @@
 @import url('base.css');
+
+.first-level-icon::before {
+  content: "\e700"; /* icono para primer nivel */
+  font-family: 'e-icons';
+}
+
+.second-level-icon::before {
+  content: "\e701"; /* icono para segundo nivel */
+  font-family: 'e-icons';
+}

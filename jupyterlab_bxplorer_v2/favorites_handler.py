@@ -32,9 +32,41 @@ class FavoritesHandler(APIHandler):
             self.write({"error": str(e)})
 
     def get(self):
-        """List all favorite buckets, formatted for FileManager."""
+        """List all favorite buckets or datasets, formatted for FileManager."""
         try:
-            files = list_favorites()
+            favorites = list_favorites()
+            files = []
+            for fav in favorites:
+                path = fav.get("path", "").strip("/")
+                segments = path.split("/")
+                if segments[0].endswith(".yaml"):
+                    # Favorito es un dataset público
+                    name = segments[0]
+                    files.append(
+                        {
+                            "name": name,
+                            "isFile": False,
+                            "path": f"/{name}/",
+                            "hasChild": True,
+                            "type": "folder",
+                            "size": "-",
+                            "dateModified": "-",
+                        }
+                    )
+                else:
+                    # Bucket privado
+                    name = segments[0]
+                    files.append(
+                        {
+                            "name": name,
+                            "isFile": False,
+                            "path": f"/{name}/",
+                            "hasChild": True,
+                            "type": "folder",
+                            "size": "-",
+                            "dateModified": "-",
+                        }
+                    )
             result = {
                 "cwd": {
                     "name": "Root",

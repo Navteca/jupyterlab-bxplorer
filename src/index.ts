@@ -2,16 +2,23 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { runIcon } from '@jupyterlab/ui-components';
 import { MainAreaWidget } from '@jupyterlab/apputils';
 import { FileManagerPanelWidget } from './widgets/FileManagerPanelWidget';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { registerLicense } from '@syncfusion/ej2-base';
 import { ILabShell } from '@jupyterlab/application';
-// import { DownloadHistoryPanelWidget } from './widgets/DownloadHistoryPanelWidget';
+import { requestAPI } from './handler';
+import { telescopeIcon } from './style/IconsStyle';
 
-registerLicense('Ngo9BigBOggjHTQxAR8/V1NNaF5cXmBCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWXxcd3VcRmBeVkd+W0VWYUA=');
+interface ConfigResponse {
+  license: string;
+}
 
+const config = (await requestAPI<ConfigResponse>('config', {
+  method: 'GET',
+}));
+
+registerLicense(config.license);
 
 const PLUGIN_ID = 'jupyterlab-bxplorer-v2:plugin';
 
@@ -38,7 +45,7 @@ async function activate(app: JupyterFrontEnd, settingRegistry: ISettingRegistry)
   });
   leftSideBarWidget.id = 'filemanager-panel-widget';
   leftSideBarWidget.toolbar.hide();
-  leftSideBarWidget.title.icon = runIcon;
+  leftSideBarWidget.title.icon = telescopeIcon;
   leftSideBarWidget.title.caption = 'File Manager';
   app.shell.add(leftSideBarWidget, 'left', { rank: 501 });
 

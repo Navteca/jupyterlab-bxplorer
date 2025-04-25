@@ -15,6 +15,7 @@ from jupyter_server.utils import url_path_join
 from .file_manager_handler import FileManagerHandler
 from .download_history_handler import DownloadHistoryHandler
 from .favorites_handler import FavoritesHandler
+from .config_handler import ConfigHandler
 
 from .favorites import Base, engine
 
@@ -96,5 +97,6 @@ def setup_handlers(web_app: ServerApp) -> None:
         (url_path_join(base_path, "FileOperations"), FileManagerHandler),
         (url_path_join(base_path, "download_history"), DownloadHistoryHandler),
         (url_path_join(base_path, "favorites"), FavoritesHandler),
+        (url_path_join(base_path, "config"), ConfigHandler),
     ]
     web_app.add_handlers(host_pattern, handlers)
