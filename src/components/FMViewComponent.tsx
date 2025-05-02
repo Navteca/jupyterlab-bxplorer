@@ -25,6 +25,7 @@ interface FMViewComponentProps {
   folderOptions: string[];
 }
 import { useDownloadHistory } from '../contexts/DownloadHistoryContext';
+
 /**
  * FMViewComponent React Functional Component.
  *
@@ -307,28 +308,6 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
     }
   };
 
-  /**
-   * Customize folder icons based on navigation depth.
-   */
-  const onActionComplete = (args: any): void => {
-    console.log("actionComplete args:", args);
-    // Solo manejamos eventos de lectura con cwd y files válidos
-    if (args.action === "read" && args.cwd && Array.isArray(args.files)) {
-      // Ahora sí es seguro usar args.cwd.path
-      const path = args.cwd.path || "/";
-      const depth = path.split("/").filter((seg: any) => seg).length;
-      args.files.forEach((file: any) => {
-        if (!file.isFile) {
-          if (depth === 1) {
-            file.iconCss = "first-level-icon";
-          } else if (depth === 2) {
-            file.iconCss = "second-level-icon";
-          }
-        }
-      });
-    }
-  };
-
   return (
     <div className="control-section" style={{ height: "100%", width: '100%' }}>
       <FileManagerComponent
@@ -336,7 +315,6 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
         id="file"
         ajaxSettings={ajaxSettings}
         beforeSend={onBeforeSend.bind(this)}
-        success={onActionComplete.bind(this)}
         toolbarSettings={{
           items: ['SortBy', 'Refresh'],
           visible: true,
@@ -349,7 +327,32 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
         }}
         detailsViewSettings={{
           columns: [
-            { field: "name", headerText: "Name", minWidth: 200, width: "auto" },
+            {
+              field: "name",
+              headerText: "Name",
+              minWidth: 200,
+              width: "auto",
+              template: (data: any) => {
+                const currentPath = fileManagerRef.current?.path || '/';
+                const depth = currentPath.split('/').filter(seg => seg).length;
+                let iconCss: string;
+                if (data.isFile) {
+                  iconCss = "e-icons e-fe-file";
+                } else if (clientType === "public" && depth === 0) {
+                  iconCss = "e-icons dataset-icon";
+                } else if (clientType === "public" && depth === 1) {
+                  iconCss = "e-icons bucket-icon";
+                } else {
+                  iconCss = "e-icons e-fe-folder";
+                }
+                return (
+                  <span className="custom-name-cell">
+                    <span className={iconCss}></span>
+                    {data.name}
+                  </span>
+                );
+              },
+            },
             { field: "region", headerText: "Region", minWidth: 10, width: "auto" },
             { field: "dateModified", headerText: "Modified", minWidth: 10, width: "auto" },
             { field: "size", headerText: "Size", minWidth: 10, width: "auto" },

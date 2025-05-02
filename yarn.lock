@@ -3106,6 +3106,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@material-design-icons/font@npm:latest":
+  version: 0.14.15
+  resolution: "@material-design-icons/font@npm:0.14.15"
+  checksum: bd77ced2788ef1b6171818032e772dd4b5a98cfde0844b29bf849910b9af30e2e6aa5e3fc4bd965f6d05adfc1d9adb7cadce503e5e0d24e544cd8871b613eaf0
+  languageName: node
+  linkType: hard
+
 "@microsoft/fast-colors@npm:^5.3.1":
   version: 5.3.1
   resolution: "@microsoft/fast-colors@npm:5.3.1"
@@ -7451,6 +7458,7 @@ __metadata:
     "@jupyterlab/services": ^7.0.0
     "@jupyterlab/settingregistry": ^4.0.0
     "@jupyterlab/testutils": ^4.0.0
+    "@material-design-icons/font": latest
     "@mui/icons-material": ^7.0.1
     "@mui/material": ^7.0.0
     "@syncfusion/ej2-data": ^29.1.33
@@ -7469,6 +7477,7 @@ __metadata:
     eslint-config-prettier: ^8.8.0
     eslint-plugin-prettier: ^5.0.0
     jest: ^29.2.0
+    material-design-icons: ^3.0.1
     mkdirp: ^1.0.3
     npm-run-all2: ^7.0.1
     prettier: ^3.0.0
@@ -7757,6 +7766,13 @@ __metadata:
   peerDependencies:
     react: ">= 0.14.0"
   checksum: e7aaef2a85a7825c5f4cbf394fbd9ed51c45a29288e7b7e88cde63eef3f233448ecf3b9367f9eba2a5eea35db21b7ec06f96ac4a4c035643059c065ed4e6083b
+  languageName: node
+  linkType: hard
+
+"material-design-icons@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "material-design-icons@npm:3.0.1"
+  checksum: 9a6dd4b2a7f531616df76080508281d3235f290568e40592b347ba4ea582fc992d8068491c55260b7d11907ad16be57d9c64d57ac4bbf7fc1c93f622e7accde7
   languageName: node
   linkType: hard
 
