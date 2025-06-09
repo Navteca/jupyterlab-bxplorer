@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
     ChonkyActions,
     ChonkyFileActionData,
@@ -14,12 +15,15 @@ import {
 import { ChonkyIconFA } from 'chonky-navteca-icon-fontawesome';
 import path from 'path';
 import React, { useCallback, useEffect, useState, useContext, useMemo, useRef } from 'react';
+import { FitsContext } from './FitsContext'
+import { FitsContextType } from './fits'
 import { FavoriteContext } from './FavoriteContext'
 import { FavoriteContextType, IFavorite } from './favorites'
 import { DownloadContext } from './DownloadsContext';
 import { DownloadContextType } from './downloads';
 import { ExternalBucketSearchComponent } from './ExternalBucketSearchComponent';
 import { DownloadPathSetterComponent } from './DownloadPathSetterComponent'
+import { ViewFitsFileInfoComponent } from './ViewFitsFileInfoComponent'
 import { IFileBrowserProps } from './CustomProps'
 import { INotification } from 'jupyterlab_toastify';
 import isEmpty from 'lodash.isempty'
@@ -32,8 +36,11 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
     const [selectedOption, setSelectedOption] = useState<string>('');
     const [showAddExternalBucketModal, setShowAddExternalBucketModal] = useState(false);
     const [showDownloadPathSetterModal, setShowDownloadPathSetterModal] = useState(false);
+    const [showViewFitsFileInfoModal, setShowViewFitsFileInfoModal] = useState(false);
     const { favorite, addFavorite, deleteFavorite } = useContext(FavoriteContext) as FavoriteContextType;
+    const { getFitsHeader } = useContext(FitsContext) as FitsContextType;
     const [downloadPath, setDownloadPath] = useState<string>('Downloads');
+    const [fitsInfo, setFitsInfo] = useState<string>('');
     const { downloadObject } = useContext(DownloadContext) as DownloadContextType;
     let downloadPathValue = useRef('')
 
@@ -98,6 +105,9 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
     const handCloseDownloadPathSetterModal = () => {
         setShowDownloadPathSetterModal(false);
         initiateDownload()
+    }
+    const handCloseViewFitsFileInfoModal = () => {
+        setShowViewFitsFileInfoModal(false);
     }
 
     const folderChain = useMemo(() => {
@@ -185,6 +195,27 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
         }
     }, [bucketName, folderPrefix]);
 
+    const customViewFitsFileInfo = defineFileAction({
+        id: 'view_fits_info',
+        requiresSelection: true,
+        button: {
+            name: 'View FITS file info',
+            toolbar: true,
+            contextMenu: true,
+            group: 'Actions',
+            icon: ChonkyIconName.info,
+        },
+    },
+        async ({ state }) => {
+            if (state.contextMenuTriggerFile) {
+                const clientType = JSON.parse(favorite.filter(item => item.path === bucketName)[0].chonky_object).additionalInfo[0].type
+                const file = state.contextMenuTriggerFile.id
+                const response = await getFitsHeader(file, bucketName, clientType === 'public')
+                setSelectedOption(file)
+                setFitsInfo(response)
+            }
+        });
+
     const customDownloadFiles = defineFileAction({
         id: 'download_files',
         requiresSelection: true,
@@ -200,7 +231,7 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
             if (state.contextMenuTriggerFile) {
                 setSelectedOption(state.contextMenuTriggerFile.id)
             }
-        })
+        });
 
     const customAddToFavorites = defineFileAction({
         id: 'add_to_favorites',
@@ -212,7 +243,7 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
             group: 'Actions',
             icon: ChonkyIconName.folderCreate,
         },
-    } as const,
+    },
         async ({ state }) => {
             if (state.contextMenuTriggerFile) {
                 if ((state.selectedFiles[0].hasOwnProperty('isDir')) && (folderPrefix === '/')) {
@@ -233,7 +264,7 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
                 }
 
             }
-        })
+        });
 
     const customRemoveFromFavorite = defineFileAction({
         id: 'remove_from_favorite',
@@ -245,9 +276,9 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
             group: 'Actions',
             icon: ChonkyIconName.clearSelection,
         },
-    } as const,
+    },
         async ({ state }) => {
-            if (state.contextMenuTriggerFile) {
+            if (isRoot && state.contextMenuTriggerFile) {
                 const response = await deleteFavorite(state.contextMenuTriggerFile.id)
                 if (response.status_code === 200) {
                     INotification.success(response.data, { autoClose: 5000 })
@@ -255,7 +286,7 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
                     INotification.error(response.error?.message, { autoClose: 5000 })
                 }
             }
-        })
+        });
 
     const customAddBucket = defineFileAction({
         id: 'add_bucket',
@@ -264,7 +295,7 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
             toolbar: true,
             icon: ChonkyIconName.folderCreate,
         },
-    })
+    });
 
     const handleFileAction = useCallback(
         async (data: ChonkyFileActionData) => {
@@ -282,7 +313,7 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
             }
             if (data.id === ChonkyActions.DownloadFiles.id) {
                 if (isRoot) {
-                    console.log(`You are not allowed to download entire buckets`)
+                    console.log('You are not allowed to download entire buckets')
                     INotification.info('It is not possible to download entire buckets.', { autoClose: 3000 })
                 } else {
                     if (folderChain.length >= 2) {
@@ -292,17 +323,41 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
                     }
                 }
             }
+            if (data.id === customViewFitsFileInfo.id) {
+                if (isRoot) {
+                    console.log('Not a FITS file.')
+                    INotification.warning('Only FITS files are allowed.', { autoClose: 3000 })
+                } else {
+                    if (selectedOption.match(/^.*\.(fits|fit)$/)) {
+                        setShowViewFitsFileInfoModal(true)
+                    } else {
+                        INotification.warning('Only FITS files are allowed.', { autoClose: 3000 })
+                    }
+                }
+            }
+            if (data.id === customAddToFavorites.id) {
+                if (!isRoot) {
+                    console.log('You are only allowed to add buckets to favorites.')
+                    INotification.warning('You are only allowed to add buckets to favorites.', { autoClose: 3000 })
+                }
+            }
+            if (data.id === customRemoveFromFavorite.id) {
+                if (!isRoot) {
+                    console.log('You are only allowed to remove buckets from favorites.')
+                    INotification.warning('You are only allowed to remove buckets from favorites.', { autoClose: 3000 })
+                }
+            }
             if (data.id === customAddBucket.id) {
                 setShowAddExternalBucketModal(true)
             }
         },
-        [setKeyPrefix, folderPrefix, folderChain, isRoot, selectedOption, selectedOpenDataSource, instanceId, customAddBucket.id]
+        [setKeyPrefix, folderPrefix, folderChain, isRoot, selectedOption, selectedOpenDataSource, instanceId, customAddBucket.id, customViewFitsFileInfo.id, customAddToFavorites.id, customRemoveFromFavorite.id]
     );
 
-    let customFileActions;
-    if (instanceId === 'favorites') customFileActions = [customAddBucket, customDownloadFiles, customRemoveFromFavorite];
-    else if (instanceId === 'private') customFileActions = [customDownloadFiles, customAddToFavorites];
-    else customFileActions = [customDownloadFiles, customAddToFavorites];
+    let customFileActions: any[];
+    if (instanceId === 'favorites') { customFileActions = [customAddBucket, customDownloadFiles, customRemoveFromFavorite, customViewFitsFileInfo]; }
+    else if (instanceId === 'private') { customFileActions = [customDownloadFiles, customAddToFavorites, customViewFitsFileInfo]; }
+    else { customFileActions = [customDownloadFiles, customAddToFavorites, customViewFitsFileInfo]; }
 
     const actionsToDisable: string[] = [
         ChonkyActions.EnableGridView.id,
@@ -344,6 +399,14 @@ export const FileBrowserComponent: React.FC<IFileBrowserProps> = ({ getRootFileS
                     show={showDownloadPathSetterModal}
                     handleClose={handCloseDownloadPathSetterModal}
                     setDownloadPath={setDownloadPath}
+                />
+            }
+            {showViewFitsFileInfoModal &&
+                <ViewFitsFileInfoComponent
+                    show={showViewFitsFileInfoModal}
+                    handleClose={handCloseViewFitsFileInfoModal}
+                    filename={selectedOption}
+                    headerInfo={fitsInfo}
                 />
             }
         </div>

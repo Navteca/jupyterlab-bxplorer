@@ -6,8 +6,7 @@
     "esModuleInterop": true,
     "incremental": true,
     "jsx": "react",
-    "jsxFactory": "React.createElement",
-    "lib": ["DOM", "ESNext"],
+    "lib": ["DOM", "ES2018", "ES2020.Intl"],
     "module": "esnext",
     "moduleResolution": "node",
     "noEmitOnError": true,
@@ -15,13 +14,13 @@
     "noUnusedLocals": true,
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
-    "skipLibCheck": true,
     "outDir": "lib",
     "rootDir": "src",
     "strict": true,
     "strictNullChecks": true,
-    "target": "ES2018",
-    "types": []
+    "target": "ES2020",
+    "types": ["jest", "node"],
+    "skipLibCheck": true
   },
   "include": ["src/**/*", "style/fontawesome"],
   "exclude": ["node_modules", "build"]

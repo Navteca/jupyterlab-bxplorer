@@ -27,7 +27,7 @@ const OpenDataDropdownComponent: React.FC<Props> = ({ setODSource }) => {
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
                     {openDataSources.map((e, index) => {
-                        return (<Dropdown.Item value={e + "-" + index} key={e + "-" + index} onClick={() => {
+                        return (<Dropdown.Item data-value={e + "-" + index} key={e + "-" + index} onClick={() => {
                             setODSource(e)
                             setSelectedSource(e)
                         }} disabled={e != 'AWS'}>{e}</Dropdown.Item>)
