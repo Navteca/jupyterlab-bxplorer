@@ -148,10 +148,14 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (
         (fileManagerRef.current &&
           (fileManagerRef.current as any).selectedItems);
 
-      if (currentPath !== '/') {
+      const depth = currentPath.split('/').filter((seg: any) => seg).length;
+      if (
+        (clientType === 'private' && depth !== 0) ||
+        (clientType === 'public' && depth !== 1)
+      ) {
         showDialog({
           title: 'Not Allowed',
-          body: 'You can only add buckets to favorites from the root.',
+          body: 'You can only add buckets to favorites.',
           buttons: [Dialog.okButton({ label: 'OK' })]
         });
         return;
@@ -367,7 +371,6 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (
   };
 
   const onBeforePopupOpen = (args: BeforePopupOpenCloseEventArgs) => {
-    console.log('onBeforePopupOpen', args);
     // suppress Syncfusion's default error dialog
     if (args.popupName === 'Error') {
       args.cancel = true;
