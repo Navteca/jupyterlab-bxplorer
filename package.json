@@ -1,6 +1,6 @@
 {
     "name": "jupyterlab-bxplorer-v2",
-    "version": "0.2.23",
+    "version": "0.2.24",
     "description": "A JupyterLab extension that integrates a modern file management interface using Syncfusion's FileManager component. It enables seamless browsing, searching, and management of both public and private data buckets (e.g., AWS S3 buckets) directly within JupyterLab. Featuring multi-tab navigation, client-type filtering, and robust file operations, this extension enhances data accessibility and management in an intuitive environment.",
     "keywords": [
         "jupyter",

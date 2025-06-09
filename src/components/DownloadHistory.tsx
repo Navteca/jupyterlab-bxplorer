@@ -7,13 +7,16 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  CircularProgress,
+  CircularProgress
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { requestAPI } from '../handler';
-import { DownloadItem, useDownloadHistory } from '../contexts/DownloadHistoryContext';
+import {
+  DownloadItem,
+  useDownloadHistory
+} from '../contexts/DownloadHistoryContext';
 
 const DownloadHistory: React.FC = (): JSX.Element => {
   const { history, loading, fetchHistory } = useDownloadHistory();
@@ -24,7 +27,7 @@ const DownloadHistory: React.FC = (): JSX.Element => {
   const handleClearAll = async () => {
     try {
       const result: any = await requestAPI('download_history?action=clean', {
-        method: 'DELETE',
+        method: 'DELETE'
       });
       console.log(result.message);
       await fetchHistory();
@@ -37,7 +40,7 @@ const DownloadHistory: React.FC = (): JSX.Element => {
   const handleDeleteItem = async (id: number) => {
     try {
       const result: any = await requestAPI(`download_history?id=${id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       });
       console.log(result.message);
       await fetchHistory();
@@ -49,7 +52,9 @@ const DownloadHistory: React.FC = (): JSX.Element => {
   // Polling
   const pollHistory = async () => {
     const newHistory = await fetchHistory();
-    const anyDownloading = newHistory.some((item: DownloadItem) => item.status === 'downloading');
+    const anyDownloading = newHistory.some(
+      (item: DownloadItem) => item.status === 'downloading'
+    );
     if (anyDownloading) {
       const newInterval = Math.min(pollInterval * 1.5, 30000);
       setPollInterval(newInterval);
@@ -80,8 +85,8 @@ const DownloadHistory: React.FC = (): JSX.Element => {
         flexDirection: 'column',
         height: '100%',
         width: '100%',
-        overflow: 'hidden',  // Sin scroll en el contenedor externo
-        bgcolor: 'background.default',
+        overflow: 'hidden', // Sin scroll en el contenedor externo
+        bgcolor: 'background.default'
       }}
     >
       <Box
@@ -94,11 +99,11 @@ const DownloadHistory: React.FC = (): JSX.Element => {
           // Estructura en columna
           display: 'flex',
           flexDirection: 'column',
-          flex: 1,    // Ocupa el espacio vertical
+          flex: 1, // Ocupa el espacio vertical
           minHeight: 0, // Permite que el hijo con overflow se desplace
           bgcolor: 'background.paper',
           boxShadow: 3,
-          borderRadius: 2,
+          borderRadius: 2
         }}
       >
         {/* Cabecera */}
@@ -110,17 +115,26 @@ const DownloadHistory: React.FC = (): JSX.Element => {
             alignItems: 'center',
             p: 1,
             borderBottom: 1,
-            borderColor: 'divider',
+            borderColor: 'divider'
           }}
         >
           <Typography variant="h6" component="h2">
             Download History
           </Typography>
           <Box>
-            <IconButton onClick={fetchHistory} color="primary" aria-label="refresh" sx={{ mr: 1 }}>
+            <IconButton
+              onClick={fetchHistory}
+              color="primary"
+              aria-label="refresh"
+              sx={{ mr: 1 }}
+            >
               <RefreshIcon />
             </IconButton>
-            <IconButton onClick={handleClearAll} color="secondary" aria-label="clear all">
+            <IconButton
+              onClick={handleClearAll}
+              color="secondary"
+              aria-label="clear all"
+            >
               <DeleteSweepIcon />
             </IconButton>
           </Box>
@@ -129,14 +143,21 @@ const DownloadHistory: React.FC = (): JSX.Element => {
         {/* Contenido scrollable: la lista */}
         <Box
           sx={{
-            flex: '1 1 auto',  // Se expande para ocupar el espacio sobrante
-            minHeight: 0,      // Crucial para permitir el scroll interno
+            flex: '1 1 auto', // Se expande para ocupar el espacio sobrante
+            minHeight: 0, // Crucial para permitir el scroll interno
             overflowY: 'auto', // Scrollbar solo aquí
-            p: 1,
+            p: 1
           }}
         >
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%'
+              }}
+            >
               <CircularProgress />
             </Box>
           ) : (
@@ -147,28 +168,41 @@ const DownloadHistory: React.FC = (): JSX.Element => {
                     <ListItemText
                       primary={
                         <span style={{ fontSize: '0.95rem' }}>
-                          <strong>{download.bucket}/{download.key}</strong>
+                          <strong>
+                            {download.bucket}/{download.key}
+                          </strong>
                         </span>
                       }
                       secondary={
                         <span style={{ fontSize: '0.85rem' }}>
-                          Start: {new Date(download.start_time).toLocaleString()}
-                          {download.end_time ? ` | End: ${new Date(download.end_time).toLocaleString()}` : ''}
+                          Start:{' '}
+                          {new Date(download.start_time).toLocaleString()}
+                          {download.end_time
+                            ? ` | End: ${new Date(download.end_time).toLocaleString()}`
+                            : ''}
                           <div />
                           Status: {download.status}
-                          {download.error_message ? ` | Error: ${download.error_message}` : ''}
+                          {download.error_message
+                            ? ` | Error: ${download.error_message}`
+                            : ''}
                         </span>
                       }
                     />
                     <ListItemSecondaryAction>
-                      <IconButton edge="end" onClick={() => handleDeleteItem(download.id)} aria-label="delete">
+                      <IconButton
+                        edge="end"
+                        onClick={() => handleDeleteItem(download.id)}
+                        aria-label="delete"
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </ListItemSecondaryAction>
                   </ListItem>
                 ))
               ) : (
-                <Typography sx={{ textAlign: 'center', py: 2 }}>No downloads available</Typography>
+                <Typography sx={{ textAlign: 'center', py: 2 }}>
+                  No downloads available
+                </Typography>
               )}
             </List>
           )}

@@ -12,10 +12,12 @@
 
 import React, { useEffect, useImperativeHandle, useRef } from 'react';
 import {
+  FailureEventArgs,
   FileManagerComponent,
   Inject,
   DetailsView,
   Toolbar,
+  BeforePopupOpenCloseEventArgs
 } from '@syncfusion/ej2-react-filemanager';
 import { requestAPI } from '../handler';
 import { showDialog, Dialog, showErrorMessage } from '@jupyterlab/apputils';
@@ -36,15 +38,18 @@ import { useDownloadHistory } from '../contexts/DownloadHistoryContext';
  * @param {FMViewComponentProps} props - The component properties.
  * @returns {JSX.Element} The rendered component.
  */
-const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Element => {
+const FMViewComponent: React.FC<FMViewComponentProps> = (
+  props,
+  ref
+): JSX.Element => {
   const { fetchHistory, startPolling } = useDownloadHistory();
-  const downloadsFolder = props.downloadsFolder || "downloads";
-  const clientType = props.clientType || "private";
+  const downloadsFolder = props.downloadsFolder || 'downloads';
+  const clientType = props.clientType || 'private';
   const fileManagerRef = useRef<FileManagerComponent>(null);
 
   // Allow parent to call refresh (if desired)
   useImperativeHandle(ref, () => ({
-    refresh: () => fileManagerRef.current?.refresh(),
+    refresh: () => fileManagerRef.current?.refresh()
   }));
 
   // Listens for the panel opening event and refreshes the FileManager
@@ -68,8 +73,8 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
    * @returns {string} The base URL.
    */
   const getBaseUrl = () => {
-    const pathParts = window.location.pathname.split("/");
-    const userIndex = pathParts.indexOf("user");
+    const pathParts = window.location.pathname.split('/');
+    const userIndex = pathParts.indexOf('user');
 
     if (userIndex !== -1 && pathParts.length > userIndex + 1) {
       return `${window.location.origin}/user/${pathParts[userIndex + 1]}`;
@@ -80,10 +85,8 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
 
   const backendUrl = getBaseUrl();
 
-  console.log(backendUrl);
-
   const ajaxSettings: object = {
-    url: backendUrl + "/jupyterlab-bxplorer-v2/FileOperations",
+    url: backendUrl + '/jupyterlab-bxplorer-v2/FileOperations'
   };
 
   /**
@@ -93,7 +96,9 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
    * @returns {string | null} The cookie value if found, otherwise null.
    */
   function getCookie(name: any) {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    const match = document.cookie.match(
+      new RegExp('(^| )' + name + '=([^;]+)')
+    );
     return match ? match[2] : null;
   }
 
@@ -106,26 +111,23 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
    */
   const onBeforeSend = (args: any): void => {
     if (args.ajaxSettings) {
-
       const xsrfToken = getCookie('_xsrf');
       args.ajaxSettings.beforeSend = function (args: any) {
-        args.httpRequest.setRequestHeader("X-XSRFToken", xsrfToken);
+        args.httpRequest.setRequestHeader('X-XSRFToken', xsrfToken);
       };
     }
-    console.log("ajaxBeforeSend action:", args.action);
-    console.log("ajaxBeforeSend args:", args);
+
     let currentData = args.ajaxSettings.data;
-    if (typeof currentData === "string") {
+    if (typeof currentData === 'string') {
       try {
         currentData = JSON.parse(currentData);
       } catch (e) {
-        console.error("Error parsing ajaxSettings.data:", e);
+        console.error('Error parsing ajaxSettings.data:', e);
         currentData = {};
       }
     }
     const modifiedData = { ...currentData, client_type: clientType };
     args.ajaxSettings.data = JSON.stringify(modifiedData);
-    console.log("ajaxBeforeSend modified args:", args);
   };
 
   /**
@@ -137,23 +139,20 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
    * @param {any} args - The event arguments from the context menu click.
    */
   const contextMenuClickHandler = async (args: any): Promise<void> => {
-    console.log("menuClick args:", args);
-    if (args.item && args.item.text === "Add to favorites") {
+    if (args.item && args.item.text === 'Add to favorites') {
       args.cancel = true;
 
-      const currentPath = (fileManagerRef.current as any).path || "/";
-      const selectedItems = args.data || (fileManagerRef.current && (fileManagerRef.current as any).selectedItems);
+      const currentPath = (fileManagerRef.current as any).path || '/';
+      const selectedItems =
+        args.data ||
+        (fileManagerRef.current &&
+          (fileManagerRef.current as any).selectedItems);
 
-      console.log("current:", fileManagerRef.current);
-      console.log("currentPath:", currentPath);
-      console.log("selectedItems:", selectedItems);
-      console.log("clientType:", clientType);
-
-      if (currentPath !== "/") {
+      if (currentPath !== '/') {
         showDialog({
-          title: "Not Allowed",
-          body: "You can only add buckets to favorites from the root.",
-          buttons: [Dialog.okButton({ label: "OK" })],
+          title: 'Not Allowed',
+          body: 'You can only add buckets to favorites from the root.',
+          buttons: [Dialog.okButton({ label: 'OK' })]
         });
         return;
       }
@@ -161,9 +160,9 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
       const selectedBucket = selectedItems?.[0];
       if (!selectedBucket) {
         showDialog({
-          title: "No Selection",
-          body: "No bucket selected to add to favorites.",
-          buttons: [Dialog.okButton({ label: "OK" })],
+          title: 'No Selection',
+          body: 'No bucket selected to add to favorites.',
+          buttons: [Dialog.okButton({ label: 'OK' })]
         });
         return;
       }
@@ -171,8 +170,11 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
       try {
         await requestAPI('favorites', {
           method: 'POST',
-          body: JSON.stringify({ bucket: selectedBucket, client_type: clientType }),
-          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bucket: selectedBucket,
+            client_type: clientType
+          }),
+          headers: { 'Content-Type': 'application/json' }
         });
 
         showDialog({
@@ -181,24 +183,27 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
           buttons: [Dialog.okButton({ label: 'OK' })]
         });
       } catch (error) {
-        console.error("Add to favorites error:", error);
+        console.error('Add to favorites error:', error);
         showErrorMessage('Error', 'Failed to add bucket to favorites.');
       }
 
       return;
     }
 
-    if (args.item && args.item.text === "Remove from favorites") {
+    if (args.item && args.item.text === 'Remove from favorites') {
       args.cancel = true;
 
-      const currentPath = (fileManagerRef.current as any).path || "/";
-      const selectedItems = args.data || (fileManagerRef.current && (fileManagerRef.current as any).selectedItems);
+      const currentPath = (fileManagerRef.current as any).path || '/';
+      const selectedItems =
+        args.data ||
+        (fileManagerRef.current &&
+          (fileManagerRef.current as any).selectedItems);
 
-      if (currentPath !== "/") {
+      if (currentPath !== '/') {
         showDialog({
-          title: "Not Allowed",
-          body: "You can only remove buckets from favorites from the root.",
-          buttons: [Dialog.okButton({ label: "OK" })],
+          title: 'Not Allowed',
+          body: 'You can only remove buckets from favorites from the root.',
+          buttons: [Dialog.okButton({ label: 'OK' })]
         });
         return;
       }
@@ -206,9 +211,9 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
       const selectedBucket = selectedItems?.[0];
       if (!selectedBucket) {
         showDialog({
-          title: "No Selection",
-          body: "No bucket selected to remove from favorites.",
-          buttons: [Dialog.okButton({ label: "OK" })],
+          title: 'No Selection',
+          body: 'No bucket selected to remove from favorites.',
+          buttons: [Dialog.okButton({ label: 'OK' })]
         });
         return;
       }
@@ -217,7 +222,7 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
         await requestAPI('favorites', {
           method: 'DELETE',
           body: JSON.stringify({ bucket: selectedBucket }),
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' }
         });
 
         showDialog({
@@ -228,21 +233,24 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
         const fm = fileManagerRef.current as any;
         if (fm) {
           const currentPath = fm.path;
-          fm.path = "/temp-refresh";
+          fm.path = '/temp-refresh';
           fm.path = currentPath;
         }
       } catch (error) {
-        console.error("Remove from favorites error:", error);
+        console.error('Remove from favorites error:', error);
         showErrorMessage('Error', 'Failed to remove bucket from favorites.');
       }
 
       return;
     }
 
-    if (args.item && args.item.text === "Download") {
+    if (args.item && args.item.text === 'Download') {
       args.cancel = true;
-      const currentPath = (fileManagerRef.current as any).path || "/";
-      const selectedItems = args.data || (fileManagerRef.current && (fileManagerRef.current as any).selectedItems);
+      const currentPath = (fileManagerRef.current as any).path || '/';
+      const selectedItems =
+        args.data ||
+        (fileManagerRef.current &&
+          (fileManagerRef.current as any).selectedItems);
       if (!selectedItems || selectedItems.length === 0) {
         showDialog({
           title: 'Information',
@@ -253,34 +261,34 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
       }
 
       const payloadObj = {
-        action: "download",
+        action: 'download',
         path: currentPath,
         downloadsFolder: downloadsFolder,
         client_type: clientType,
         names: selectedItems.map((item: any) => item.name || item),
         data: selectedItems.map((item: any) => {
-          if (typeof item === "string") {
+          if (typeof item === 'string') {
             return {
               name: item,
               isFile: true,
-              path: currentPath.endsWith("/")
+              path: currentPath.endsWith('/')
                 ? currentPath + item
-                : currentPath + "/" + item,
+                : currentPath + '/' + item
             };
           } else {
             return item;
           }
-        }),
+        })
       };
 
       const payload = JSON.stringify(payloadObj);
       const formData = new URLSearchParams();
-      formData.append("downloadInput", payload);
+      formData.append('downloadInput', payload);
 
       await requestAPI('FileOperations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData.toString(),
+        body: formData.toString()
       })
         .then(async (data: any) => {
           await fetchHistory();
@@ -302,14 +310,72 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
           });
         })
         .catch((error: any) => {
-          console.error("Download error:", error);
-          showErrorMessage('Download Error', 'An error occurred while downloading the file.');
+          console.error('Download error:', error);
+          showErrorMessage(
+            'Download Error',
+            'An error occurred while downloading the file.'
+          );
         });
     }
   };
 
+  const onFileLoad = (args: any) => {
+    const currentPath = fileManagerRef.current?.path || '/';
+    const depth = currentPath.split('/').filter(seg => seg).length;
+
+    const icons = args.element.querySelectorAll('.e-fe-icon.e-fe-folder');
+    icons.forEach((icon: any) => {
+      if (clientType === 'public' && depth === 0) {
+        icon.className = 'e-icons dataset-icon';
+      } else if (
+        (clientType === 'private' && depth === 0) ||
+        (clientType === 'favorites' && depth === 0) ||
+        (clientType === 'public' && depth === 1)
+      ) {
+        icon.className = 'e-icons bucket-icon';
+      } else {
+        icon.className = 'e-fe-icon e-fe-folder';
+      }
+    });
+  };
+
+  const onFailure = (args: FailureEventArgs) => {
+    if (args.action === 'read') {
+      showDialog({
+        title: 'Access Error',
+        body: (
+          <div>
+            <p>
+              An error occurred while trying to access the dataset or bucket.
+            </p>
+            <p>
+              Please open an issue at{' '}
+              <a
+                href="https://github.com/Navteca/jupyterlab-bxplorer/issues"
+                target="_blank"
+                rel="noopener"
+              >
+                https://github.com/Navteca/jupyterlab-bxplorer/issues
+              </a>{' '}
+              so we can investigate and resolve it.
+            </p>
+          </div>
+        ),
+        buttons: [Dialog.okButton({ label: 'OK' })]
+      });
+    }
+  };
+
+  const onBeforePopupOpen = (args: BeforePopupOpenCloseEventArgs) => {
+    console.log('onBeforePopupOpen', args);
+    // suppress Syncfusion's default error dialog
+    if (args.popupName === 'Error') {
+      args.cancel = true;
+    }
+  };
+
   return (
-    <div className="control-section" style={{ height: "100%", width: '100%' }}>
+    <div className="control-section" style={{ height: '100%', width: '100%' }}>
       <FileManagerComponent
         ref={fileManagerRef}
         id="file"
@@ -317,47 +383,40 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (props, ref): JSX.Elemen
         beforeSend={onBeforeSend.bind(this)}
         toolbarSettings={{
           items: ['SortBy', 'Refresh'],
-          visible: true,
+          visible: true
         }}
         contextMenuSettings={{
           file: ['Download', '|', 'Details'],
           folder: props.folderOptions,
           layout: [],
-          visible: true,
+          visible: true
         }}
         detailsViewSettings={{
           columns: [
             {
-              field: "name",
-              headerText: "Name",
+              field: 'name',
+              headerText: 'Name',
               minWidth: 200,
-              width: "auto",
-              template: (data: any) => {
-                const currentPath = fileManagerRef.current?.path || '/';
-                const depth = currentPath.split('/').filter(seg => seg).length;
-                let iconCss: string;
-                if (data.isFile) {
-                  iconCss = "e-icons e-fe-file";
-                } else if (clientType === "public" && depth === 0) {
-                  iconCss = "e-icons dataset-icon";
-                } else if (clientType === "public" && depth === 1) {
-                  iconCss = "e-icons bucket-icon";
-                } else {
-                  iconCss = "e-icons e-fe-folder";
-                }
-                return (
-                  <span className="custom-name-cell">
-                    <span className={iconCss}></span>
-                    {data.name}
-                  </span>
-                );
-              },
+              width: 'auto'
             },
-            { field: "region", headerText: "Region", minWidth: 10, width: "auto" },
-            { field: "dateModified", headerText: "Modified", minWidth: 10, width: "auto" },
-            { field: "size", headerText: "Size", minWidth: 10, width: "auto" },
-          ],
+            {
+              field: 'region',
+              headerText: 'Region',
+              minWidth: 10,
+              width: 'auto'
+            },
+            {
+              field: 'dateModified',
+              headerText: 'Modified',
+              minWidth: 10,
+              width: 'auto'
+            },
+            { field: 'size', headerText: 'Size', minWidth: 10, width: 'auto' }
+          ]
         }}
+        fileLoad={onFileLoad}
+        beforePopupOpen={onBeforePopupOpen}
+        failure={onFailure}
         view="Details"
         allowMultiSelection={false}
         height="100%"

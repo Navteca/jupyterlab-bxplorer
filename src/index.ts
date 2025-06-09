@@ -14,32 +14,48 @@ interface ConfigResponse {
   license: string;
 }
 
-const config = (await requestAPI<ConfigResponse>('config', {
-  method: 'GET',
-}));
+const config = await requestAPI<ConfigResponse>('config', {
+  method: 'GET'
+});
 
 registerLicense(config.license);
 
 const PLUGIN_ID = 'jupyterlab-bxplorer-v2:plugin';
 
-async function activate(app: JupyterFrontEnd, settingRegistry: ISettingRegistry): Promise<void> {
+async function activate(
+  app: JupyterFrontEnd,
+  settingRegistry: ISettingRegistry
+): Promise<void> {
   console.log('JupyterLab extension jupyterlab-bxplorer-v2 is activated!');
 
-  let downloadsFolder = "";
+  let downloadsFolder = '';
+  let atlasId = '';
   if (settingRegistry) {
     await settingRegistry
       .load(plugin.id)
       .then(settings => {
-        console.log('jupyterlab-bxplorer-v2 settings loaded:', settings.composite);
-        downloadsFolder = settings.get('download-folder').composite as string || "";
+        console.log(
+          'jupyterlab-bxplorer-v2 settings loaded:',
+          settings.composite
+        );
+        downloadsFolder =
+          (settings.get('download-folder').composite as string) || '';
         console.log('downloadsFolder:', downloadsFolder);
+        atlasId = (settings.get('atlasId').composite as string) || '';
+        console.log('atlasId:', atlasId);
       })
       .catch(reason => {
-        console.error('Failed to load settings for jupyterlab-bxplorer-v2.', reason);
+        console.error(
+          'Failed to load settings for jupyterlab-bxplorer-v2.',
+          reason
+        );
       });
   }
 
-  const leftSideBarContent = new FileManagerPanelWidget(downloadsFolder);
+  const leftSideBarContent = new FileManagerPanelWidget(
+    downloadsFolder,
+    atlasId
+  );
   const leftSideBarWidget = new MainAreaWidget<FileManagerPanelWidget>({
     content: leftSideBarContent
   });
