@@ -3,4 +3,4 @@ node_modules
 **/lib
 **/package.json
 !/package.json
-jupyterlab_bxplorer
+jupyterlab_bxplorer_v2

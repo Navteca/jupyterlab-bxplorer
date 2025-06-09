@@ -17,7 +17,7 @@ export async function requestAPI<T>(
   const settings = ServerConnection.makeSettings();
   const requestUrl = URLExt.join(
     settings.baseUrl,
-    'jupyterlab-bxplorer', // API Namespace
+    'jupyterlab-bxplorer-v2', // API Namespace
     endPoint
   );
 

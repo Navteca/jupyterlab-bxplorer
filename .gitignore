@@ -7,9 +7,9 @@ node_modules/
 *.egg-info/
 .ipynb_checkpoints
 *.tsbuildinfo
-jupyterlab_bxplorer/labextension
+jupyterlab_bxplorer_v2/labextension
 # Version file is handled by hatchling
-jupyterlab_bxplorer/_version.py
+jupyterlab_bxplorer_v2/_version.py
 
 # Integration tests
 ui-tests/test-results/
@@ -123,3 +123,7 @@ dmypy.json
 
 # Yarn cache
 .yarn/
+
+.cache.db
+.favorites.db
+.download_history.db

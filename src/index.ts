@@ -1,47 +1,82 @@
 import {
-  ILayoutRestorer,
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { MainAreaWidget } from '@jupyterlab/apputils';
-import { telescopeIcon, telescopeDownloadsIcon } from './style/IconsStyle';
-import { BXplorerPanelWidget } from './widgets/BXplorerPanelWidget';
-import { DownloadsPanelWidget } from './widgets/DownloadsPanelWidget'
+import { FileManagerPanelWidget } from './widgets/FileManagerPanelWidget';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { registerLicense } from '@syncfusion/ej2-base';
+import { ILabShell } from '@jupyterlab/application';
+import { requestAPI } from './handler';
+import { telescopeIcon } from './style/IconsStyle';
 
-const PLUGIN_ID = 'jupyterlab_bxplorer:plugin';
+interface ConfigResponse {
+  license: string;
+}
+
+const config = await requestAPI<ConfigResponse>('config', {
+  method: 'GET'
+});
+
+registerLicense(config.license);
+
+const PLUGIN_ID = 'jupyterlab-bxplorer-v2:plugin';
+
+async function activate(
+  app: JupyterFrontEnd,
+  settingRegistry: ISettingRegistry
+): Promise<void> {
+  console.log('JupyterLab extension jupyterlab-bxplorer-v2 is activated!');
+
+  let downloadsFolder = '';
+  let atlasId = '';
+  if (settingRegistry) {
+    await settingRegistry
+      .load(plugin.id)
+      .then(settings => {
+        console.log(
+          'jupyterlab-bxplorer-v2 settings loaded:',
+          settings.composite
+        );
+        downloadsFolder =
+          (settings.get('download-folder').composite as string) || '';
+        console.log('downloadsFolder:', downloadsFolder);
+        atlasId = (settings.get('atlasId').composite as string) || '';
+        console.log('atlasId:', atlasId);
+      })
+      .catch(reason => {
+        console.error(
+          'Failed to load settings for jupyterlab-bxplorer-v2.',
+          reason
+        );
+      });
+  }
+
+  const leftSideBarContent = new FileManagerPanelWidget(
+    downloadsFolder,
+    atlasId
+  );
+  const leftSideBarWidget = new MainAreaWidget<FileManagerPanelWidget>({
+    content: leftSideBarContent
+  });
+  leftSideBarWidget.id = 'filemanager-panel-widget';
+  leftSideBarWidget.toolbar.hide();
+  leftSideBarWidget.title.icon = telescopeIcon;
+  leftSideBarWidget.title.caption = 'File Manager';
+  app.shell.add(leftSideBarWidget, 'left', { rank: 501 });
+
+  const shell = app.shell as ILabShell;
+  if (shell.leftCollapsed) {
+    shell.expandLeft();
+  }
+}
 
 const plugin: JupyterFrontEndPlugin<void> = {
   id: PLUGIN_ID,
+  description: 'A JupyterLab extension.',
   autoStart: true,
-  optional: [ILayoutRestorer, ISettingRegistry],
-  activate: activate
+  optional: [ISettingRegistry],
+  activate
 };
-
-async function activate(app: JupyterFrontEnd, restorer: ILayoutRestorer): Promise<void> {
-
-  const content = new BXplorerPanelWidget()
-  const widget = new MainAreaWidget<BXplorerPanelWidget>({ content })
-  widget.toolbar.hide()
-  widget.title.icon = telescopeIcon;
-  widget.title.caption = 'BXplorer';
-  app.shell.add(widget, 'left', { rank: 501 });
-
-  setTimeout(() => {
-      console.log('Updating widget...')
-      widget.update()
-      widget.content.update()
-  }, 15000);
-
-  const downloadsContent = new DownloadsPanelWidget()
-  downloadsContent.addClass('jp-PropertyInspector-placeholderContent');
-  const downloadsWidget = new MainAreaWidget<DownloadsPanelWidget>({ content: downloadsContent })
-  downloadsWidget.toolbar.hide()
-  downloadsWidget.title.icon = telescopeDownloadsIcon;
-  downloadsWidget.title.caption = 'BXplorer Downloads';
-  app.shell.add(downloadsWidget, 'right', { rank: 501 });
-
-  restorer.add(widget, 'bxplorerWidget');
-}
 
 export default plugin;

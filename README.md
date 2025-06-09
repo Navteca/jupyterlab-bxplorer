@@ -1,13 +1,13 @@
-# jupyterlab_bxplorer
+# jupyterlab_bxplorer_v2
 
-[![Github Actions Status](https://github.com/Navteca/jupyterlab-bxplorer/workflows/Build/badge.svg)](https://github.com/Navteca/jupyterlab-bxplorer/actions/workflows/build.yml)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Navteca/jupyterlab-bxplorer/main?urlpath=lab)
+[![Github Actions Status](https://github.com/Navteca/jupyterlab-bxplorer-v2/workflows/Build/badge.svg)](https://github.com/Navteca/jupyterlab-bxplorer-v2/actions/workflows/build.yml)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Navteca/jupyterlab-bxplorer-v2/main?urlpath=lab)
 
 
 A JupyterLab extension.
 
-This extension is composed of a Python package named `jupyterlab_bxplorer`
-for the server extension and a NPM package named `jupyterlab-bxplorer`
+This extension is composed of a Python package named `jupyterlab_bxplorer_v2`
+for the server extension and a NPM package named `jupyterlab-bxplorer-v2`
 for the frontend extension.
 
 ## Requirements
@@ -19,7 +19,7 @@ for the frontend extension.
 To install the extension, execute:
 
 ```bash
-pip install jupyterlab_bxplorer
+pip install jupyterlab_bxplorer_v2
 ```
 
 ## Uninstall
@@ -27,7 +27,7 @@ pip install jupyterlab_bxplorer
 To remove the extension, execute:
 
 ```bash
-pip uninstall jupyterlab_bxplorer
+pip uninstall jupyterlab_bxplorer_v2
 ```
 
 ## Troubleshoot
@@ -58,13 +58,13 @@ The `jlpm` command is JupyterLab's pinned version of
 
 ```bash
 # Clone the repo to your local environment
-# Change directory to the jupyterlab_bxplorer directory
+# Change directory to the jupyterlab_bxplorer_v2 directory
 # Install package in development mode
 pip install -e ".[test]"
 # Link your development version of the extension with JupyterLab
 jupyter labextension develop . --overwrite
 # Server extension must be manually installed in develop mode
-jupyter server extension enable jupyterlab_bxplorer
+jupyter server extension enable jupyterlab_bxplorer_v2
 # Rebuild extension Typescript source after making changes
 jlpm build
 ```
@@ -90,13 +90,13 @@ jupyter lab build --minimize=False
 
 ```bash
 # Server extension must be manually disabled in develop mode
-jupyter server extension disable jupyterlab_bxplorer
-pip uninstall jupyterlab_bxplorer
+jupyter server extension disable jupyterlab_bxplorer_v2
+pip uninstall jupyterlab_bxplorer_v2
 ```
 
 In development mode, you will also need to remove the symlink created by `jupyter labextension develop`
 command. To find its location, you can run `jupyter labextension list` to figure out where the `labextensions`
-folder is located. Then you can remove the symlink named `jupyterlab-bxplorer` within that folder.
+folder is located. Then you can remove the symlink named `jupyterlab-bxplorer-v2` within that folder.
 
 ### Testing the extension
 
@@ -115,7 +115,7 @@ jupyter labextension develop . --overwrite
 To execute them, run:
 
 ```sh
-pytest -vv -r ap --cov jupyterlab_bxplorer
+pytest -vv -r ap --cov jupyterlab_bxplorer_v2
 ```
 
 #### Frontend tests

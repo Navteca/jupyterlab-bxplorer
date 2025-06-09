@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" perform a development install of jupyterlab_bxplorer
+""" perform a development install of jupyterlab_bxplorer_v2
 
     On Binder, this will run _after_ the environment has been fully created from
     the environment.yml in this directory.
@@ -39,7 +39,7 @@ _(
     "server",
     "extension",
     "enable",
-    "jupyterlab_bxplorer",
+    "jupyterlab_bxplorer_v2",
 )
 
 # verify the environment the extension didn't break anything
@@ -52,5 +52,5 @@ _("jupyter", "server", "extension", "list")
 _("jupyter", "labextension", "list")
 
 
-print("JupyterLab with jupyterlab_bxplorer is ready to run with:\n")
+print("JupyterLab with jupyterlab_bxplorer_v2 is ready to run with:\n")
 print("\tjupyter lab\n")

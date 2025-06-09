@@ -6,9 +6,9 @@ author_name: Navteca LLC
 has_binder: true
 has_settings: true
 kind: server
-labextension_name: jupyterlab-bxplorer
+labextension_name: jupyterlab-bxplorer-v2
 project_short_description: A JupyterLab extension.
-python_name: jupyterlab_bxplorer
-repository: https://github.com/Navteca/jupyterlab-bxplorer
+python_name: jupyterlab_bxplorer_v2
+repository: https://github.com/Navteca/jupyterlab-bxplorer-v2
 test: true
 
