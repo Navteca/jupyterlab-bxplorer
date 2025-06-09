@@ -1,0 +1,77 @@
+/*
+    See the JupyterLab Developer Guide for useful CSS Patterns:
+
+    https://jupyterlab.readthedocs.io/en/stable/developer/css.html
+*/
+@import '../node_modules/@syncfusion/ej2-base/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-icons/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-inputs/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-popups/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-buttons/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-splitbuttons/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-navigations/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-layouts/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-grids/styles/material.css';
+@import '../node_modules/@syncfusion/ej2-react-filemanager/styles/material.css';
+@import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
+
+/* style/base.css */
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./fonts/material-icons-outlined.woff2') format('woff2'),
+       url('./fonts/material-icons-round.woff2') format('woff2'),
+       url('./fonts/material-icons-two-tone.woff2') format('woff2'),
+       url('./fonts/material-icons.woff2') format('woff2'),
+       url('./fonts/material-icons-outlined.woff2') format('woff2');
+}
+
+.material-icons {
+  font-family: 'Material Icons' !important;           /* Carga la fuente de Google */
+  font-weight: normal;
+  font-style: normal;
+  font-variant-ligatures: contextual !important;      /* Activa las ligaduras para iconos */
+  text-rendering: optimizeLegibility !important;
+  /* Ajustes opcionales de tamaño y alineación */
+  font-size: 1.2em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.custom-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;        /* espacio icono ↔ texto */
+}
+
+.custom-name-cell .file-name {
+  /* opcional: controlar el wrap o ellipsis */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dataset (tabla) para tema Material */
+.e-filemanager .e-icons.dataset-icon::before {
+  content: "\f8ee";               /* U+E1DB → storage */
+  font-family: 'Material Icons';
+  font-variant-ligatures: contextual;
+  font-size: large !important;
+  color: #FF9900;                 /* naranja AWS */
+}
+
+/* Bucket (almacenamiento) para tema Material */
+.e-filemanager .e-icons.bucket-icon::before {
+  content: "\e1db";               /* U+E1DB → storage */
+  font-family: 'Material Icons';
+  font-variant-ligatures: contextual;
+  font-size: large !important;
+  color: #2ca02c;                 /* naranja AWS */
+}
+
+/* .e-filemanager .e-icons.bucket-icon-disk::before {
+  content: "\e73a";
+  font-family: 'e-icons';
+  color: #FF9900;
+} */

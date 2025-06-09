@@ -1,0 +1,20 @@
+{
+  "title": "BXplorer",
+  "description": "BXplorer settings.",
+  "type": "object",
+  "properties": {
+    "download-folder": {
+      "type": "string",
+      "title": "Download folder",
+      "description": "This is the folder where the downloaded files will be saved.",
+      "default": "downloads"
+    },
+    "atlasId": {
+      "type": "string",
+      "title": "Atlas ID",
+      "description": "This is the ID of the atlas to be used.",
+      "default": ""
+    }    
+  },
+  "additionalProperties": false
+}
