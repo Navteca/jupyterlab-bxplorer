@@ -75,7 +75,7 @@ class RouteHandler(BaseHandler):
         """
         self.finish(
             json.dumps(
-                {"data": "This is /jupyterlab-bxplorer-v2/get-example endpoint!"}
+                {"data": "This is /jupyterlab-bxplorer/get-example endpoint!"}
             )
         )
 
@@ -91,7 +91,7 @@ def setup_handlers(web_app: ServerApp) -> None:
     """
     host_pattern = ".*$"
 
-    base_path = url_path_join(web_app.settings["base_url"], "jupyterlab-bxplorer-v2")
+    base_path = url_path_join(web_app.settings["base_url"], "jupyterlab-bxplorer")
     handlers = [
         (url_path_join(base_path, "get-example"), RouteHandler),
         (url_path_join(base_path, "FileOperations"), FileManagerHandler),

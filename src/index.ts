@@ -20,13 +20,13 @@ const config = await requestAPI<ConfigResponse>('config', {
 
 registerLicense(config.license);
 
-const PLUGIN_ID = 'jupyterlab-bxplorer-v2:plugin';
+const PLUGIN_ID = 'jupyterlab-bxplorer:plugin';
 
 async function activate(
   app: JupyterFrontEnd,
   settingRegistry: ISettingRegistry
 ): Promise<void> {
-  console.log('JupyterLab extension jupyterlab-bxplorer-v2 is activated!');
+  console.log('JupyterLab extension jupyterlab-bxplorer is activated!');
 
   let downloadsFolder = '';
   let atlasId = '';
@@ -35,7 +35,7 @@ async function activate(
       .load(plugin.id)
       .then(settings => {
         console.log(
-          'jupyterlab-bxplorer-v2 settings loaded:',
+          'jupyterlab-bxplorer settings loaded:',
           settings.composite
         );
         downloadsFolder =
@@ -46,7 +46,7 @@ async function activate(
       })
       .catch(reason => {
         console.error(
-          'Failed to load settings for jupyterlab-bxplorer-v2.',
+          'Failed to load settings for jupyterlab-bxplorer.',
           reason
         );
       });

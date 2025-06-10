@@ -86,7 +86,7 @@ const FMViewComponent: React.FC<FMViewComponentProps> = (
   const backendUrl = getBaseUrl();
 
   const ajaxSettings: object = {
-    url: backendUrl + '/jupyterlab-bxplorer-v2/FileOperations'
+    url: backendUrl + '/jupyterlab-bxplorer/FileOperations'
   };
 
   /**
