@@ -9,6 +9,6 @@ kind: server
 labextension_name: jupyterlab-bxplorer-v2
 project_short_description: A JupyterLab extension.
 python_name: jupyterlab_bxplorer_v2
-repository: https://github.com/Navteca/jupyterlab-bxplorer-v2
+repository: https://github.com/Navteca/jupyterlab-bxplorer
 test: true
 

@@ -1,6 +1,6 @@
 # jupyterlab_bxplorer_v2
 
-[![Github Actions Status](https://github.com/Navteca/jupyterlab-bxplorer-v2/workflows/Build/badge.svg)](https://github.com/Navteca/jupyterlab-bxplorer-v2/actions/workflows/build.yml)
+[![Github Actions Status](https://github.com/Navteca/jupyterlab-bxplorer/workflows/Build/badge.svg)](https://github.com/Navteca/jupyterlab-bxplorer/actions/workflows/build.yml)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Navteca/jupyterlab-bxplorer-v2/main?urlpath=lab)
 
 

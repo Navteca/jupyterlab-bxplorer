@@ -7,9 +7,9 @@
         "jupyterlab",
         "jupyterlab-extension"
     ],
-    "homepage": "https://github.com/Navteca/jupyterlab-bxplorer-v2",
+    "homepage": "https://github.com/Navteca/jupyterlab-bxplorer",
     "bugs": {
-        "url": "https://github.com/Navteca/jupyterlab-bxplorer-v2/issues"
+        "url": "https://github.com/Navteca/jupyterlab-bxplorer/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
@@ -27,7 +27,7 @@
     "style": "style/index.css",
     "repository": {
         "type": "git",
-        "url": "https://github.com/Navteca/jupyterlab-bxplorer-v2.git"
+        "url": "https://github.com/Navteca/jupyterlab-bxplorer.git"
     },
     "scripts": {
         "build": "jlpm build:lib && jlpm build:labextension:dev",
