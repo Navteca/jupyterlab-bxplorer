@@ -66,7 +66,6 @@ class DownloadHistoryHandler(APIHandler):
         If an error occurs during the process, a 500 status code with the error message is returned.
         """
         try:
-            print("GET download_history")
             # Se consultan todos los registros ordenados por fecha de inicio descendente
             records = (
                 session.query(DownloadHistory)
@@ -87,8 +86,6 @@ class DownloadHistoryHandler(APIHandler):
                         "error_message": record.error_message,
                     }
                 )
-            print("GET download_history ended")
-            print(f"downloads: {downloads}")
             self.set_header("Content-Type", "application/json")
             self.write(json.dumps(downloads))
         except Exception as e:

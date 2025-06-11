@@ -6,7 +6,6 @@ the JupyterLab Bxplorer extension.
 It retrieves environment-based configuration and returns it as a JSON response.
 """
 
-import os
 import json
 from jupyter_server.base.handlers import APIHandler
 
@@ -34,16 +33,11 @@ class ConfigHandler(APIHandler):
             code 500 if the variable is missing.
         """
         try:
-            required_env_vars = ["BXPLORER_CONFIG"]
-            for var in required_env_vars:
-                if var not in os.environ:
-                    raise EnvironmentError(
-                        f"Missing required environment variable: {var}"
-                    )
-            bxplorer_config = os.environ["BXPLORER_CONFIG"]
+            with open('syncfusion-license.txt', 'r', encoding='utf-8') as file:
+                license_key = file.read()
 
             self.set_header("Content-Type", "application/json")
-            self.write(json.dumps({"license": bxplorer_config}))
+            self.write(json.dumps({"license": license_key}))
         except EnvironmentError as e:
             self.set_status(500)
             self.write(json.dumps({"error": str(e)}))
