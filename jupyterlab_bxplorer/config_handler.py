@@ -5,7 +5,7 @@ This module defines an API handler for serving configuration data required by
 the JupyterLab Bxplorer extension.
 It retrieves environment-based configuration and returns it as a JSON response.
 """
-
+import os
 import json
 from jupyter_server.base.handlers import APIHandler
 
@@ -33,7 +33,8 @@ class ConfigHandler(APIHandler):
             code 500 if the variable is missing.
         """
         try:
-            with open('syncfusion-license.txt', 'r', encoding='utf-8') as file:
+            license_path = os.path.expanduser('~/.jupyterlab-bxplorer/syncfusion-license.txt')
+            with open(license_path, 'r', encoding='utf-8') as file:                
                 license_key = file.read()
 
             self.set_header("Content-Type", "application/json")
