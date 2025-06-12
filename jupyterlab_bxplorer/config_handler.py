@@ -33,7 +33,7 @@ class ConfigHandler(APIHandler):
             code 500 if the variable is missing.
         """
         try:
-            license_path = os.path.expanduser('~/.jupyterlab-bxplorer/syncfusion-license.txt')
+            license_path = os.path.expanduser('/etc/bxplorer/license.txt')
             with open(license_path, 'r', encoding='utf-8') as file:                
                 license_key = file.read()
 
