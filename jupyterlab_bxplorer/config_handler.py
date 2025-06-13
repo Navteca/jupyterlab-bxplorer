@@ -33,12 +33,18 @@ class ConfigHandler(APIHandler):
             code 500 if the variable is missing.
         """
         try:
-            license_path = os.path.expanduser('/etc/bxplorer/license.txt')
-            with open(license_path, 'r', encoding='utf-8') as file:                
-                license_key = file.read()
+            license_path = os.path.expanduser('/etc/bxplorer/config.txt')
+            config = {}
+            with open(license_path, 'r', encoding='utf-8') as file:
+                for line in file:
+                    line = line.strip()
+                    if not line or '=' not in line:
+                        continue
+                    key, _, value = line.partition('=')
+                    config[key.strip()] = value.strip()
 
             self.set_header("Content-Type", "application/json")
-            self.write(json.dumps({"license": license_key}))
+            self.write(json.dumps(config))
         except EnvironmentError as e:
             self.set_status(500)
             self.write(json.dumps({"error": str(e)}))

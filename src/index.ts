@@ -11,14 +11,15 @@ import { requestAPI } from './handler';
 import { telescopeIcon } from './style/IconsStyle';
 
 interface ConfigResponse {
-  license: string;
+  LICENSE: string;
+  CHATLAS: string;
 }
 
 const config = await requestAPI<ConfigResponse>('config', {
   method: 'GET'
 });
 
-registerLicense(config.license);
+registerLicense(config.LICENSE);
 
 const PLUGIN_ID = 'jupyterlab-bxplorer:plugin';
 
@@ -29,20 +30,13 @@ async function activate(
   console.log('JupyterLab extension jupyterlab-bxplorer is activated!');
 
   let downloadsFolder = '';
-  let atlasId = '';
+  const atlasId = config.CHATLAS;
   if (settingRegistry) {
     await settingRegistry
       .load(plugin.id)
       .then(settings => {
-        console.log(
-          'jupyterlab-bxplorer settings loaded:',
-          settings.composite
-        );
         downloadsFolder =
           (settings.get('download-folder').composite as string) || '';
-        console.log('downloadsFolder:', downloadsFolder);
-        atlasId = (settings.get('atlasId').composite as string) || '';
-        console.log('atlasId:', atlasId);
       })
       .catch(reason => {
         console.error(
