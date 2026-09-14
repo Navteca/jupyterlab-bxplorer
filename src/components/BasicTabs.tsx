@@ -6,7 +6,9 @@ import CustomTabPanel from './CustomTabPanel';
 import FMViewComponent from './FMViewComponent';
 import { DownloadHistoryProvider } from '../contexts/DownloadHistoryContext';
 import DownloadHistory from './DownloadHistory';
-import Chatlas from './Chatlas';
+// Chatlas tab temporarily hidden. Uncomment the import, the <Tab> and the
+// <CustomTabPanel> below to restore it.
+// import Chatlas from './Chatlas';
 
 interface BasicTabsProps {
   downloadsFolder: string;
@@ -38,7 +40,7 @@ const BasicTabs: React.FC<BasicTabsProps> = (props): JSX.Element => {
             <Tab label="Private" {...a11yProps(1)} />
             <Tab label="Public" {...a11yProps(2)} />
             <Tab label="Download History" {...a11yProps(3)} />
-            <Tab label="Chatlas" {...a11yProps(4)} />
+            {/* <Tab label="Chatlas" {...a11yProps(4)} /> */}
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0}>
@@ -65,9 +67,9 @@ const BasicTabs: React.FC<BasicTabsProps> = (props): JSX.Element => {
         <CustomTabPanel value={value} index={3}>
           <DownloadHistory />
         </CustomTabPanel>
-        <CustomTabPanel value={value} index={4}>
+        {/* <CustomTabPanel value={value} index={4}>
           <Chatlas atlasId={props.atlasId} />
-        </CustomTabPanel>
+        </CustomTabPanel> */}
       </Box>
     </DownloadHistoryProvider>
   );
