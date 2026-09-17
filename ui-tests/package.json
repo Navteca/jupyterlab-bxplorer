@@ -1,7 +1,7 @@
 {
-  "name": "jupyterlab-bxplorer-v2-ui-tests",
+  "name": "jupyterlab-bxplorer-ui-tests",
   "version": "1.0.0",
-  "description": "JupyterLab jupyterlab-bxplorer-v2 Integration Tests",
+  "description": "JupyterLab jupyterlab-bxplorer Integration Tests",
   "private": true,
   "scripts": {
     "start": "jupyter lab --config jupyter_server_test_config.py",

@@ -1,10 +1,10 @@
-# a mybinder.org-ready environment for demoing jupyterlab_bxplorer_v2
+# a mybinder.org-ready environment for demoing jupyterlab_bxplorer
 # this environment may also be used locally on Linux/MacOS/Windows, e.g.
 #
 #   conda env update --file binder/environment.yml
-#   conda activate jupyterlab-bxplorer-v2-demo
+#   conda activate jupyterlab-bxplorer-demo
 #
-name: jupyterlab-bxplorer-v2-demo
+name: jupyterlab-bxplorer-demo
 
 channels:
   - conda-forge

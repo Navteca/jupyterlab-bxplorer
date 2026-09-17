@@ -16,6 +16,6 @@ test('should emit an activation console message', async ({ page }) => {
   await page.goto();
 
   expect(
-    logs.filter(s => s === 'JupyterLab extension jupyterlab-bxplorer-v2 is activated!')
+    logs.filter(s => s === 'JupyterLab extension jupyterlab-bxplorer is activated!')
   ).toHaveLength(1);
 });

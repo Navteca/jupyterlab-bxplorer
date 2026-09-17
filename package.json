@@ -1,15 +1,15 @@
 {
-    "name": "jupyterlab-bxplorer-v2",
-    "version": "0.2.24",
+    "name": "jupyterlab-bxplorer",
+    "version": "0.2.31",
     "description": "A JupyterLab extension that integrates a modern file management interface using Syncfusion's FileManager component. It enables seamless browsing, searching, and management of both public and private data buckets (e.g., AWS S3 buckets) directly within JupyterLab. Featuring multi-tab navigation, client-type filtering, and robust file operations, this extension enhances data accessibility and management in an intuitive environment.",
     "keywords": [
         "jupyter",
         "jupyterlab",
         "jupyterlab-extension"
     ],
-    "homepage": "https://github.com/Navteca/jupyterlab-bxplorer-v2",
+    "homepage": "https://github.com/Navteca/jupyterlab-bxplorer",
     "bugs": {
-        "url": "https://github.com/Navteca/jupyterlab-bxplorer-v2/issues"
+        "url": "https://github.com/Navteca/jupyterlab-bxplorer/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
@@ -27,7 +27,7 @@
     "style": "style/index.css",
     "repository": {
         "type": "git",
-        "url": "https://github.com/Navteca/jupyterlab-bxplorer-v2.git"
+        "url": "https://github.com/Navteca/jupyterlab-bxplorer.git"
     },
     "scripts": {
         "build": "jlpm build:lib && jlpm build:labextension:dev",
@@ -39,7 +39,7 @@
         "clean": "jlpm clean:lib",
         "clean:lib": "rimraf lib tsconfig.tsbuildinfo",
         "clean:lintcache": "rimraf .eslintcache .stylelintcache",
-        "clean:labextension": "rimraf jupyterlab_bxplorer_v2/labextension jupyterlab_bxplorer_v2/_version.py",
+        "clean:labextension": "rimraf jupyterlab_bxplorer/labextension jupyterlab_bxplorer/_version.py",
         "clean:all": "jlpm clean:lib && jlpm clean:labextension && jlpm clean:lintcache",
         "eslint": "jlpm eslint:check --fix",
         "eslint:check": "eslint . --cache --ext .ts,.tsx",
@@ -117,12 +117,12 @@
                     "pip"
                 ],
                 "base": {
-                    "name": "jupyterlab_bxplorer_v2"
+                    "name": "jupyterlab_bxplorer"
                 }
             }
         },
         "extension": true,
-        "outputDir": "jupyterlab_bxplorer_v2/labextension",
+        "outputDir": "jupyterlab_bxplorer/labextension",
         "schemaDir": "schema"
     },
     "eslintIgnore": [

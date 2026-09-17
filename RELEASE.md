@@ -1,4 +1,4 @@
-# Making a new release of jupyterlab_bxplorer_v2
+# Making a new release of jupyterlab_bxplorer
 
 The extension can be published to `PyPI` and `npm` manually or using the [Jupyter Releaser](https://github.com/jupyter-server/jupyter_releaser).
 

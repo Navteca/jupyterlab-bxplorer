@@ -15,7 +15,7 @@ const Chatlas: React.FC<ChatlasProps> = ({
 
   useEffect(() => {
     const script = document.createElement('script');
-    script.src = 'https://app.dev.thevoiceatlas.com/bot/chatlas.js';
+    script.src = 'https://app.thevoiceatlas.com/bot/chatlas.js';
     script.async = true;
     document.body.appendChild(script);
 

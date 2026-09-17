@@ -7445,9 +7445,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jupyterlab-bxplorer-v2@workspace:.":
+"jupyterlab-bxplorer@workspace:.":
   version: 0.0.0-use.local
-  resolution: "jupyterlab-bxplorer-v2@workspace:."
+  resolution: "jupyterlab-bxplorer@workspace:."
   dependencies:
     "@emotion/react": ^11.14.0
     "@emotion/styled": ^11.14.0

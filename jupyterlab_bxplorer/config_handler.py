@@ -5,7 +5,6 @@ This module defines an API handler for serving configuration data required by
 the JupyterLab Bxplorer extension.
 It retrieves environment-based configuration and returns it as a JSON response.
 """
-
 import os
 import json
 from jupyter_server.base.handlers import APIHandler
@@ -34,16 +33,18 @@ class ConfigHandler(APIHandler):
             code 500 if the variable is missing.
         """
         try:
-            required_env_vars = ["BXPLORER_CONFIG"]
-            for var in required_env_vars:
-                if var not in os.environ:
-                    raise EnvironmentError(
-                        f"Missing required environment variable: {var}"
-                    )
-            bxplorer_config = os.environ["BXPLORER_CONFIG"]
+            license_path = os.path.expanduser('/etc/bxplorer/config.txt')
+            config = {}
+            with open(license_path, 'r', encoding='utf-8') as file:
+                for line in file:
+                    line = line.strip()
+                    if not line or '=' not in line:
+                        continue
+                    key, _, value = line.partition('=')
+                    config[key.strip()] = value.strip()
 
             self.set_header("Content-Type", "application/json")
-            self.write(json.dumps({"license": bxplorer_config}))
+            self.write(json.dumps(config))
         except EnvironmentError as e:
             self.set_status(500)
             self.write(json.dumps({"error": str(e)}))
